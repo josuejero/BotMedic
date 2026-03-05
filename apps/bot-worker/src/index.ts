@@ -7,7 +7,7 @@ import { buildLatencyResponse } from './commands/latency';
 import { buildPermissionsResponse } from './commands/permissions';
 import { handleDashboardRequest } from './dashboard';
 import { recordCommandUsage, recordHealthSuccess, recordDiagnosis } from './telemetry';
-import { getRuleCase, SymptomId } from './rules';
+import { getRuleCase, SymptomId } from '@botmedic/rules';
 import {
   InteractionType,
   InteractionResponseType,

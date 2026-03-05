@@ -1,5 +1,5 @@
 import { InteractionResponse, InteractionResponseType } from '../types/discord';
-import { RULE_CASES, getRuleCase, buildSupportResponseSections } from '../rules';
+import { RULE_CASES, getRuleCase, buildSupportResponseSections } from '@botmedic/rules';
 
 const BUTTONS_PER_ROW = 5;
 

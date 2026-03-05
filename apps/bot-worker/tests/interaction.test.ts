@@ -14,7 +14,7 @@ import {
   EnvBindings,
   Interaction
 } from '../src/types/discord';
-import { RULE_CASES } from '../src/rules';
+import { RULE_CASES } from '@botmedic/rules';
 
 const encoder = new TextEncoder();
 

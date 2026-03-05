@@ -2,10 +2,12 @@
   "name": "botmedic",
   "private": true,
   "workspaces": [
-    "apps/bot-worker"
+    "apps/bot-worker",
+    "packages/*"
   ],
   "scripts": {
     "test": "npm --workspace apps/bot-worker test",
+    "generate-site-data": "npx ts-node scripts/generate-site-data.mts",
     "lint": "echo \"No lint configured yet\""
   }
 }

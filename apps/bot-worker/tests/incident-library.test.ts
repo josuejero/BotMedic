@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import symptoms from '../../fixtures/incidents/symptoms.json' assert { type: 'json' };
 import diagnosisSnapshots from '../../fixtures/incidents/diagnosis-snapshots.json' assert { type: 'json' };
 import customerSafe from '../../fixtures/incidents/customer-safe.json' assert { type: 'json' };
-import { RULE_CASES, buildSupportResponseSections } from '../src/rules';
+import { RULE_CASES, buildSupportResponseSections } from '@botmedic/rules';
 
 describe('incident fixture library', () => {
   it('mirrors the worker rule cases', () => {

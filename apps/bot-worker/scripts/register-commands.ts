@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { fetch } from 'undici';
-import { RULE_CASES } from '../src/rules';
+import { DISCORD_COMMANDS } from '@botmedic/commands';
 
 dotenv.config({ path: '.env.local' });
 
@@ -15,62 +15,7 @@ const appId = process.env.DISCORD_APP_ID!;
 const botToken = process.env.DISCORD_BOT_TOKEN!;
 const guildId = process.env.DISCORD_GUILD_ID!;
 
-const commands = [
-  {
-    name: 'health',
-    type: 1,
-    description: 'Confirm BotMedic is responsive',
-    dm_permission: false,
-    default_member_permissions: null
-  },
-  {
-    name: 'envcheck',
-    type: 1,
-    description: 'Verify required BotMedic environment variables',
-    dm_permission: false,
-    default_member_permissions: null
-  },
-  {
-    name: 'permissions',
-    type: 1,
-    description: 'Check the bot role/channel permissions locally',
-    dm_permission: false,
-    default_member_permissions: null
-  },
-  {
-    name: 'latency',
-    type: 1,
-    description: 'Measure the round-trip latency for this interaction',
-    dm_permission: false,
-    default_member_permissions: null
-  },
-  {
-    name: 'helpme',
-    type: 1,
-    description: 'Give me troubleshooting hints with BotMedic',
-    dm_permission: false,
-    default_member_permissions: null
-  },
-  {
-    name: 'incident',
-    type: 1,
-    description: 'Replay a seeded incident scenario',
-    dm_permission: false,
-    default_member_permissions: null,
-    options: [
-      {
-        name: 'scenario',
-        description: 'Choose which incident to replay',
-        type: 3,
-        required: false,
-        choices: RULE_CASES.map((rule) => ({
-          name: rule.buttonLabel,
-          value: rule.id
-        }))
-      }
-    ]
-  }
-];
+const commands = DISCORD_COMMANDS;
 
 async function main() {
   const url = `https://discord.com/api/v10/applications/${appId}/guilds/${guildId}/commands`;

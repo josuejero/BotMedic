@@ -1,5 +1,5 @@
 import { InteractionResponse, InteractionResponseType } from '../types/discord';
-import { RULE_CASES, SymptomId, getRuleCaseById, RuleCase } from '../rules';
+import { RULE_CASES, SymptomId, getRuleCaseById, RuleCase } from '@botmedic/rules';
 import { buildHelpmeSymptomResponse } from './helpme';
 
 const LIST_TITLE = 'Available incident scenarios:';

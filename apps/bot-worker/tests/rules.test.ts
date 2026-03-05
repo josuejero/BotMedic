@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RULE_CASES, getRuleCase, getRuleCaseById } from '../src/rules';
+import { RULE_CASES, getRuleCase, getRuleCaseById } from '@botmedic/rules';
 
 describe('rule catalog', () => {
   it('defines all seeded cases and metadata', () => {

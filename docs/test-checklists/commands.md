@@ -31,5 +31,5 @@
 - Check this deferred case catches the `requiresDeferredResponse` flag so the follow-up message can be issued safely after the defer.
 
 ## Regression checks
-- When adding new scenarios, update `fixtures/incidents/*` and `site/js/data.js` so the runbooks, dashboard, and tests stay in sync.
+- When adding new scenarios, update `@botmedic/rules` (and `@botmedic/commands` if needed), regenerate `site/js/data.js` with `npm run generate-site-data`, and refresh `fixtures/incidents/*` so the runbooks, dashboard, and tests stay in sync.
 - Run `npm --workspace apps/bot-worker test` to cover signature verification, command routing, incident fixtures, and deferred-response behavior.

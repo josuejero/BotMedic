@@ -1,12 +1,10 @@
 import { EnvBindings } from './types/discord';
-import type { RuleCase } from './rules';
+import { COMMAND_NAMES, type CommandName } from '@botmedic/commands';
+import type { RuleCase } from '@botmedic/rules';
 
 const COMMAND_COUNTER_KEY = 'botmedic:command_counts';
 const HEALTH_KEY = 'botmedic:last_health';
 const DIAGNOSIS_KEY = 'botmedic:last_diagnosis';
-
-export const COMMAND_NAMES = ['health', 'envcheck', 'permissions', 'latency', 'helpme', 'incident'] as const;
-export type CommandName = (typeof COMMAND_NAMES)[number];
 
 export interface HealthRecord {
   timestamp: string;
@@ -112,3 +110,6 @@ export async function readDashboardData(env: EnvBindings): Promise<DashboardData
     lastDiagnosis: lastDiagnosis ?? undefined
   };
 }
+
+export { COMMAND_NAMES };
+export type { CommandName };

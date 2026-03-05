@@ -12,6 +12,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@botmedic/commands": "file:../../packages/commands",
+    "@botmedic/rules": "file:../../packages/rules",
     "@noble/ed25519": "^1.7.1",
     "dotenv": "^10.0.0",
     "undici": "^6.0.0"
