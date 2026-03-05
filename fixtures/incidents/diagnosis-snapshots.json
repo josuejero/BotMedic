@@ -1,0 +1,172 @@
+{
+  "invalid_token": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord rejects the bot token, so interactions never hit the worker despite Cloudflare being available.",
+      "• Probable root cause: DISCORD_BOT_TOKEN in Cloudflare is empty, expired, or mismatched with the Discord application.",
+      "• Exact checks performed: Copy the bot token from the Discord developer portal and paste it into Cloudflare secrets verbatim · Trigger a redeploy so the worker picks up the rotated token before testing /health again",
+      "• Confidence level: 90%",
+      "• Technical next step: Rotate or restore the bot token, redeploy, then run /health in a staging guild.",
+      "• When to escalate: Escalate if Discord still rejects commands with 401s after two redeploys with the verified token."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic cannot authenticate with Discord until the bot credentials are restored; we are refreshing them now. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Rotate or restore the bot token, redeploy, then run /health in a staging guild.",
+      "• When to contact support again: Escalate if Discord still rejects commands with 401s after two redeploys with the verified token. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "missing_bot_permission": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord refuses to run commands because the bot role does not have the required high-level permissions.",
+      "• Probable root cause: Core permission bits (view/send/embed/use application commands) are absent on the bot role.",
+      "• Exact checks performed: Run /permissions and capture the list of missing flags · Compare the bot role's permission bits to the documented checklist and update as needed",
+      "• Confidence level: 82%",
+      "• Technical next step: Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands.",
+      "• When to escalate: Escalate if permission edits still yield missing flags after two rounds of updates."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is blocked from sending diagnostic replies because it lacks required Discord permissions. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands.",
+      "• When to contact support again: Escalate if permission edits still yield missing flags after two rounds of updates. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "missing_env_var": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: One or more critical environment variables are not set or malformed, so the worker runs with incomplete configuration.",
+      "• Probable root cause: Secrets were not inserted into the Cloudflare deployment or were mistyped during the last deploy.",
+      "• Exact checks performed: Run /envcheck; ensure the required keys are present and formatted correctly · Compare the Cloudflare secret values to an .env.local copy or deployment manifest",
+      "• Confidence level: 78%",
+      "• Technical next step: Add the missing variables with valid values and redeploy the worker.",
+      "• When to escalate: Escalate if required bindings remain missing after deployments to both staging and production."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is missing configuration values, so we need to restore those secrets before it can respond reliably. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Add the missing variables with valid values and redeploy the worker.",
+      "• When to contact support again: Escalate if required bindings remain missing after deployments to both staging and production. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "wrong_interaction_url": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord is hitting an outdated or missing interaction URL, so requests never arrive at the current worker.",
+      "• Probable root cause: The registered interaction endpoint points to an old subdomain, path, or disabled worker route.",
+      "• Exact checks performed: Confirm the interaction URL in Discord matches the latest published Cloudflare worker domain and path · Check Cloudflare Workers routes and DNS records to ensure they are active",
+      "• Confidence level: 74%",
+      "• Technical next step: Update the interaction URL to the correct worker and run /health to verify responses.",
+      "• When to escalate: Escalate if the endpoint remains unreachable for more than 10 minutes after updates."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: Discord cannot find the address for BotMedic, so commands are dropped before they reach us. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Update the interaction URL to the correct worker and run /health to verify responses.",
+      "• When to contact support again: Escalate if the endpoint remains unreachable for more than 10 minutes after updates. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "wrong_public_key": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord signs requests with the most recent public key, but the worker still uses the old or missing value.",
+      "• Probable root cause: DISCORD_PUBLIC_KEY in the worker configuration is stale, empty, or miscopied.",
+      "• Exact checks performed: Copy the public key from the Discord developer portal and verify the 64-character hex string matches Cloudflare · Restart or redeploy the worker so the new key is picked up before rerunning commands",
+      "• Confidence level: 86%",
+      "• Technical next step: Paste the correct public key into secrets and re-run /health to confirm verification succeeds.",
+      "• When to escalate: Escalate if signature failures persist across builds after updating the public key."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is reachable, but Discord rejects the signed payloads because the public key is misconfigured. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Paste the correct public key into secrets and re-run /health to confirm verification succeeds.",
+      "• When to contact support again: Escalate if signature failures persist across builds after updating the public key. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "dependency_runtime_mismatch": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: A dependency or platform API the worker relies on is unavailable in the deployed Cloudflare runtime.",
+      "• Probable root cause: The build output targets a higher Node version or includes modules that the Workers environment forbids.",
+      "• Exact checks performed: Inspect the bundle or stack trace for Web API/polyfill stderr · Compare dependency versions between local builds and the deployed lockfile",
+      "• Confidence level: 66%",
+      "• Technical next step: Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy.",
+      "• When to escalate: Escalate if runtime mismatches continue after locking the build target."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic encountered a runtime incompatibility; we are adjusting the build so it can run in Cloudflare Workers. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy.",
+      "• When to contact support again: Escalate if runtime mismatches continue after locking the build target. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "stale_deployment": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord is hitting an inactive or stale worker deployment, so commands never hit the current logic.",
+      "• Probable root cause: The worker route is disabled or the DNS still points to an older release after a deploy.",
+      "• Exact checks performed: Check Cloudflare Worker deployments, ensuring the active version has the latest code · Confirm DNS or custom domain routes are enabled and point to the right worker",
+      "• Confidence level: 75%",
+      "• Technical next step: Re-deploy or re-enable the worker route, then test /health within the same guild.",
+      "• When to escalate: Escalate if multiple deployments keep routing to stale builds and commands stay unresponsive."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is temporarily offline because the current deployment isn't wired up; we are promoting the latest build. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Re-deploy or re-enable the worker route, then test /health within the same guild.",
+      "• When to contact support again: Escalate if multiple deployments keep routing to stale builds and commands stay unresponsive. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "webhook_endpoint_error": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: The worker code crashes at startup or during request parsing, so Discord sees a webhook failure before flow reaches commands.",
+      "• Probable root cause: Unhandled runtime errors—extra dependencies, misconfigured bindings, or bundler output—cause the worker to crash.",
+      "• Exact checks performed: Review Cloudflare worker logs for unhandled exceptions or module resolution errors · Confirm every dependency referenced by the worker is included in package-lock and is published",
+      "• Confidence level: 71%",
+      "• Technical next step: Fix the startup exception (missing dependency or config) and redeploy; then test /health.",
+      "• When to escalate: Escalate if webhook failures persist after fixing the reported crash points."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic cannot process interactions right now because the worker code is crashing; we are addressing the issue. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Fix the startup exception (missing dependency or config) and redeploy; then test /health.",
+      "• When to contact support again: Escalate if webhook failures persist after fixing the reported crash points. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "role_channel_permission_denial": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Channel overrides or role hierarchies deny permissions, preventing BotMedic from responding even when global flags are set.",
+      "• Probable root cause: A channel override or higher-priority role removes View/Send permissions after the interaction starts.",
+      "• Exact checks performed: Inspect channel overrides where diagnostics fail and ensure the bot role can still send messages · Check if any higher-priority roles revoke embeds or application command usage",
+      "• Confidence level: 68%",
+      "• Technical next step: Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels.",
+      "• When to escalate: Escalate if overrides continue to deny permissions after manual fixes."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic needs an extra permission tweak because channel-level restrictions are preventing replies. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels.",
+      "• When to contact support again: Escalate if overrides continue to deny permissions after manual fixes. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "slow_handler_deferred": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: The interaction handler takes longer than 3 seconds, so Discord invalidates the single-use token unless a deferred ack is sent.",
+      "• Probable root cause: Long-running checks (e.g., telemetry queries or dependency tests) are wrapped in the slash command path.",
+      "• Exact checks performed: Identify the slow-running dependencies and isolate them outside of the immediate interaction handler · Ensure every long-running path sends a deferred response with type 5 before executing heavy work",
+      "• Confidence level: 59%",
+      "• Technical next step: Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message.",
+      "• When to escalate: Escalate if Discord rejects tokens even after acknowledging the interaction within 3 seconds."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: We have a slow diagnostic path, so we are deferring the response until the work completes to keep Discord happy. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message.",
+      "• When to contact support again: Escalate if Discord rejects tokens even after acknowledging the interaction within 3 seconds. Expect us to monitor the follow-up window before escalating."
+    ]
+  }
+}

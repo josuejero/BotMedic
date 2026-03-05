@@ -5,6 +5,7 @@ import { buildHealthResponse } from '../src/commands/health';
 import { buildLatencyResponse } from '../src/commands/latency';
 import { buildPermissionsResponse } from '../src/commands/permissions';
 import { buildHelpmeResponse, buildHelpmeSymptomResponse } from '../src/commands/helpme';
+import { buildDeferredResponse } from '../src/commands/incident';
 import { handleDiscordRequest } from '../src/index';
 import { verifyDiscordRequest } from '../src/utils/discord';
 import {
@@ -161,8 +162,8 @@ describe('Discord interaction helper', () => {
   });
 
   it('builds a helpme symptom response for known buttons', () => {
-    const response = buildHelpmeSymptomResponse('helpme_symptom_token_config_issue');
-    expect(response.data?.content).toContain('You selected: Token/config issues');
+    const response = buildHelpmeSymptomResponse('helpme_symptom_invalid_token');
+    expect(response.data?.content).toContain('You selected: Invalid/rotated bot token');
     expect(response.data?.content).toContain('Internal diagnosis:');
     expect(response.data?.content).toContain('Probable root cause:');
     expect(response.data?.content).toContain('Confidence level:');
@@ -176,7 +177,7 @@ describe('Discord interaction helper', () => {
       {
         id: 'component-1',
         type: InteractionType.MessageComponent,
-        data: { custom_id: 'helpme_symptom_token_config_issue' },
+        data: { custom_id: 'helpme_symptom_invalid_token' },
         token: 'token',
         version: 1
       },
@@ -191,15 +192,96 @@ describe('Discord interaction helper', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data?.flags).toBe(64);
-    expect(body.data?.content).toContain('Token/config issues');
+    expect(body.data?.content).toContain('Invalid/rotated bot token');
     expect(body.data?.content).toContain('Internal diagnosis:');
-    expect(body.data?.content).toContain('Diagnosis: Invalid request signatures');
+    expect(body.data?.content).toContain('Diagnosis: Discord rejects the bot token, so interactions never hit the worker despite Cloudflare being available.');
     expect(body.data?.content).toContain('Probable root cause:');
     expect(body.data?.content).toContain('Exact checks performed:');
     expect(body.data?.content).toContain('Customer-facing explanation:');
     expect(body.data?.content).toContain('What happened:');
     expect(body.data?.content).toContain('What to try next:');
     expect(body.data?.content).toContain('When to contact support again:');
+  });
+
+  it('lists incident scenarios when no option is provided', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'incident-list',
+        type: InteractionType.ApplicationCommand,
+        data: { name: 'incident' },
+        token: 'token',
+        version: 1
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data?.content).toContain('Available incident scenarios:');
+    expect(body.data?.content).toContain('invalid_token');
+  });
+
+  it('replays a scenario via the incident command', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'incident-run',
+        type: InteractionType.ApplicationCommand,
+        data: { name: 'incident', options: [{ name: 'scenario', value: 'invalid_token' }] },
+        token: 'token',
+        version: 1
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data?.content).toContain('You selected: Invalid/rotated bot token');
+    expect(body.data?.content).toContain('Internal diagnosis:');
+  });
+
+  it('returns a deferred response for the slow handler scenario', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'incident-defer',
+        type: InteractionType.ApplicationCommand,
+        data: { name: 'incident', options: [{ name: 'scenario', value: 'slow_handler_deferred' }] },
+        token: 'token',
+        version: 1
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.type).toBe(InteractionResponseType.DeferredChannelMessageWithSource);
+  });
+
+  it('builds a deferred incident response helper', () => {
+    const slowRule = RULE_CASES.find((rule) => rule.id === 'slow_handler_deferred');
+    expect(slowRule).toBeDefined();
+    const response = buildDeferredResponse(slowRule!);
+    expect(response.type).toBe(InteractionResponseType.DeferredChannelMessageWithSource);
   });
 
   it('responds to PING interactions with type 1', async () => {

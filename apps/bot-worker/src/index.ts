@@ -2,11 +2,12 @@ import { verifyDiscordRequest } from './utils/discord';
 import { buildEnvCheckResponse } from './commands/envcheck';
 import { buildHealthResponse } from './commands/health';
 import { buildHelpmeResponse, buildHelpmeSymptomResponse } from './commands/helpme';
+import { buildIncidentResponse } from './commands/incident';
 import { buildLatencyResponse } from './commands/latency';
 import { buildPermissionsResponse } from './commands/permissions';
 import { handleDashboardRequest } from './dashboard';
 import { recordCommandUsage, recordHealthSuccess, recordDiagnosis } from './telemetry';
-import { getRuleCase } from './rules';
+import { getRuleCase, SymptomId } from './rules';
 import {
   InteractionType,
   InteractionResponseType,
@@ -61,6 +62,8 @@ export async function handleDiscordRequest(request: Request, env: EnvBindings): 
 
   if (interaction.type === InteractionType.ApplicationCommand) {
     const command = interaction.data?.name?.toLowerCase();
+    const scenarioOption = interaction.data?.options?.find((option) => option.name === 'scenario')?.value;
+    const scenarioId: SymptomId | undefined = typeof scenarioOption === 'string' ? (scenarioOption as SymptomId) : undefined;
     if (!command) {
       return new Response('Missing command name', { status: 400 });
     }
@@ -78,6 +81,8 @@ export async function handleDiscordRequest(request: Request, env: EnvBindings): 
         return jsonResponse(buildLatencyResponse(timestamp));
       case 'helpme':
         return jsonResponse(buildHelpmeResponse());
+      case 'incident':
+        return jsonResponse(buildIncidentResponse(scenarioId));
       default:
         return new Response('Command not implemented', { status: 400 });
     }

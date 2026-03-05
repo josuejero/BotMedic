@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { fetch } from 'undici';
+import { RULE_CASES } from '../src/rules';
 
 dotenv.config({ path: '.env.local' });
 
@@ -49,6 +50,25 @@ const commands = [
     description: 'Give me troubleshooting hints with BotMedic',
     dm_permission: false,
     default_member_permissions: null
+  },
+  {
+    name: 'incident',
+    type: 1,
+    description: 'Replay a seeded incident scenario',
+    dm_permission: false,
+    default_member_permissions: null,
+    options: [
+      {
+        name: 'scenario',
+        description: 'Choose which incident to replay',
+        type: 3,
+        required: false,
+        choices: RULE_CASES.map((rule) => ({
+          name: rule.buttonLabel,
+          value: rule.id
+        }))
+      }
+    ]
   }
 ];
 

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "invalid_token",
+    "label": "Invalid/rotated bot token",
+    "symptom": "Slash commands return 401s or disappear before reaching the worker whenever Discord hits the endpoint.",
+    "evidence": [
+      "Discord logs list \"401 Unauthorized\" before the HTTP body ever arrives",
+      "Worker traces show zero requests even though Discord reports interaction attempts",
+      "A fresh deployment or role change coincided with the bot token being rotated"
+    ]
+  },
+  {
+    "id": "missing_bot_permission",
+    "label": "Missing bot permission",
+    "symptom": "Slash commands or responses get dropped/rejected with warnings about missing permissions.",
+    "evidence": [
+      "The /permissions command reports missing flags such as Send Messages or Use Application Commands",
+      "Discord logs mention \"Missing Permissions\" when the bot tries to send an interaction reply",
+      "The bot role lacks the same permission bits the docs require"
+    ]
+  },
+  {
+    "id": "missing_env_var",
+    "label": "Missing environment variable",
+    "symptom": "Envcheck reports missing or malformed bindings and commands behave unpredictably.",
+    "evidence": [
+      "/envcheck flags required values as absent",
+      "Worker logs print warnings about empty BOT_ENV or DISCORD_PUBLIC_KEY",
+      "Changes to BOT_VERSION alter command text unexpectedly"
+    ]
+  },
+  {
+    "id": "wrong_interaction_url",
+    "label": "Wrong interaction URL",
+    "symptom": "Discord reports 404/503 on interactions even though the worker is deployed.",
+    "evidence": [
+      "Discord developer dashboard shows endpoint errors or \"Failed to reach your application\"",
+      "Latency checks never reach the worker but DNS and certificates look healthy",
+      "New deployments include a different route or domain than the one registered"
+    ]
+  },
+  {
+    "id": "wrong_public_key",
+    "label": "Wrong public key",
+    "symptom": "Signature verification fails even though the request reaches the worker.",
+    "evidence": [
+      "Worker logs show \"Missing Discord public key\" or signature validation errors",
+      "Requests drop into the invalid-signature branch before returning any command output",
+      "The registered public key differs from the portal value after a recent key rotation"
+    ]
+  },
+  {
+    "id": "dependency_runtime_mismatch",
+    "label": "Dependency/runtime mismatch",
+    "symptom": "The worker deploys but commands throw stack traces about unsupported modules or syntax.",
+    "evidence": [
+      "Cloudflare worker logs mention unexpected exports or missing dependencies",
+      "Local builds succeed, but deployed /health errors out with runtime issues",
+      "Package lock or bundler targets a Node API that Workers does not support"
+    ]
+  },
+  {
+    "id": "stale_deployment",
+    "label": "Stale deployment",
+    "symptom": "Recent deployments leave the worker tied to an older commit or disabled route, so commands time out.",
+    "evidence": [
+      "Cloudflare dashboard shows the latest publish as failed or disabled",
+      "Discord reports timeouts even though the worker shows no new logs",
+      "Deployments land on an old version, and /health returns outdated content"
+    ]
+  },
+  {
+    "id": "webhook_endpoint_error",
+    "label": "Webhook endpoint error",
+    "symptom": "Discord hits the interaction endpoint but returns webhook-style HTTP 500/502 errors (before the worker responds).",
+    "evidence": [
+      "Discord reports a webhook failure with a generic HTTP 500/502/503 payload",
+      "Cloudflare shows HTTP gateway or worker error before the application logic executes",
+      "New dependencies or cron jobs introduced errors when loading the worker bundle"
+    ]
+  },
+  {
+    "id": "role_channel_permission_denial",
+    "label": "Role/channel permission denial",
+    "symptom": "Commands fail in specific channels even though the bot role claims to have permissions.",
+    "evidence": [
+      "The /permissions command lists the required flags, but channel overrides still block messages",
+      "Guild logs mention \"Missing Permissions\" only in channels with overrides",
+      "General permissions look good, yet interactions time out when scoped to one channel"
+    ]
+  },
+  {
+    "id": "slow_handler_deferred",
+    "label": "Slow handler requiring defer",
+    "symptom": "A deferred diagnostic path is required because response logic takes longer than 3 seconds.",
+    "evidence": [
+      "Worker traces show interactions that take >3 seconds to complete",
+      "Discord logs mention \"Interaction failed\" because the initial response wasn't sent",
+      "The team is trying to simulate long-running dependency checks for reproducing customer behavior"
+    ]
+  }
+]

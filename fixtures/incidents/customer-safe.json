@@ -1,0 +1,42 @@
+{
+  "invalid_token": {
+    "customerSafeExplanation": "BotMedic cannot authenticate with Discord until the bot credentials are restored; we are refreshing them now.",
+    "safeNextStep": "Rotate or restore the bot token, redeploy, then run /health in a staging guild."
+  },
+  "missing_bot_permission": {
+    "customerSafeExplanation": "BotMedic is blocked from sending diagnostic replies because it lacks required Discord permissions.",
+    "safeNextStep": "Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands."
+  },
+  "missing_env_var": {
+    "customerSafeExplanation": "BotMedic is missing configuration values, so we need to restore those secrets before it can respond reliably.",
+    "safeNextStep": "Add the missing variables with valid values and redeploy the worker."
+  },
+  "wrong_interaction_url": {
+    "customerSafeExplanation": "Discord cannot find the address for BotMedic, so commands are dropped before they reach us.",
+    "safeNextStep": "Update the interaction URL to the correct worker and run /health to verify responses."
+  },
+  "wrong_public_key": {
+    "customerSafeExplanation": "BotMedic is reachable, but Discord rejects the signed payloads because the public key is misconfigured.",
+    "safeNextStep": "Paste the correct public key into secrets and re-run /health to confirm verification succeeds."
+  },
+  "dependency_runtime_mismatch": {
+    "customerSafeExplanation": "BotMedic encountered a runtime incompatibility; we are adjusting the build so it can run in Cloudflare Workers.",
+    "safeNextStep": "Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy."
+  },
+  "stale_deployment": {
+    "customerSafeExplanation": "BotMedic is temporarily offline because the current deployment isn't wired up; we are promoting the latest build.",
+    "safeNextStep": "Re-deploy or re-enable the worker route, then test /health within the same guild."
+  },
+  "webhook_endpoint_error": {
+    "customerSafeExplanation": "BotMedic cannot process interactions right now because the worker code is crashing; we are addressing the issue.",
+    "safeNextStep": "Fix the startup exception (missing dependency or config) and redeploy; then test /health."
+  },
+  "role_channel_permission_denial": {
+    "customerSafeExplanation": "BotMedic needs an extra permission tweak because channel-level restrictions are preventing replies.",
+    "safeNextStep": "Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels."
+  },
+  "slow_handler_deferred": {
+    "customerSafeExplanation": "We have a slow diagnostic path, so we are deferring the response until the work completes to keep Discord happy.",
+    "safeNextStep": "Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message."
+  }
+}

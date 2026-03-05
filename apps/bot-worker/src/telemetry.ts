@@ -5,7 +5,7 @@ const COMMAND_COUNTER_KEY = 'botmedic:command_counts';
 const HEALTH_KEY = 'botmedic:last_health';
 const DIAGNOSIS_KEY = 'botmedic:last_diagnosis';
 
-export const COMMAND_NAMES = ['health', 'envcheck', 'permissions', 'latency', 'helpme'] as const;
+export const COMMAND_NAMES = ['health', 'envcheck', 'permissions', 'latency', 'helpme', 'incident'] as const;
 export type CommandName = (typeof COMMAND_NAMES)[number];
 
 export interface HealthRecord {

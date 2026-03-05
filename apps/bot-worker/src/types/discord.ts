@@ -6,15 +6,24 @@ export const InteractionType = {
 
 export const InteractionResponseType = {
   Pong: 1,
-  ChannelMessageWithSource: 4
+  ChannelMessageWithSource: 4,
+  DeferredChannelMessageWithSource: 5
 } as const;
 
 export type InteractionTypeValue = (typeof InteractionType)[keyof typeof InteractionType];
 export type InteractionResponseTypeValue = (typeof InteractionResponseType)[keyof typeof InteractionResponseType];
 
+export interface InteractionOption {
+  name: string;
+  type: number;
+  value?: string | number | boolean;
+  options?: InteractionOption[];
+}
+
 export interface InteractionData {
   name?: string;
   custom_id?: string;
+  options?: InteractionOption[];
 }
 
 export interface Interaction {
