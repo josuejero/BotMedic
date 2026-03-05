@@ -21,6 +21,34 @@ const commands = [
     description: 'Confirm BotMedic is responsive',
     dm_permission: false,
     default_member_permissions: null
+  },
+  {
+    name: 'envcheck',
+    type: 1,
+    description: 'Verify required BotMedic environment variables',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'permissions',
+    type: 1,
+    description: 'Check the bot role/channel permissions locally',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'latency',
+    type: 1,
+    description: 'Measure the round-trip latency for this interaction',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'helpme',
+    type: 1,
+    description: 'Give me troubleshooting hints with BotMedic',
+    dm_permission: false,
+    default_member_permissions: null
   }
 ];
 

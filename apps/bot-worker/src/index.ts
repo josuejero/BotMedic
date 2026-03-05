@@ -1,5 +1,9 @@
 import { verifyDiscordRequest } from './utils/discord';
+import { buildEnvCheckResponse } from './commands/envcheck';
 import { buildHealthResponse } from './commands/health';
+import { buildHelpmeResponse, buildHelpmeSymptomResponse } from './commands/helpme';
+import { buildLatencyResponse } from './commands/latency';
+import { buildPermissionsResponse } from './commands/permissions';
 import {
   InteractionType,
   InteractionResponseType,
@@ -42,12 +46,26 @@ export async function handleDiscordRequest(request: Request, env: EnvBindings): 
     return jsonResponse({ type: InteractionResponseType.Pong });
   }
 
+  if (interaction.type === InteractionType.MessageComponent) {
+    return jsonResponse(buildHelpmeSymptomResponse(interaction.data?.custom_id));
+  }
+
   if (interaction.type === InteractionType.ApplicationCommand) {
     const command = interaction.data?.name?.toLowerCase();
-    if (command === 'health') {
-      return jsonResponse(buildHealthResponse(env));
+    switch (command) {
+      case 'health':
+        return jsonResponse(buildHealthResponse(env));
+      case 'envcheck':
+        return jsonResponse(buildEnvCheckResponse(env));
+      case 'permissions':
+        return jsonResponse(buildPermissionsResponse(interaction));
+      case 'latency':
+        return jsonResponse(buildLatencyResponse(timestamp));
+      case 'helpme':
+        return jsonResponse(buildHelpmeResponse());
+      default:
+        return new Response('Command not implemented', { status: 400 });
     }
-    return new Response('Command not implemented', { status: 400 });
   }
 
   return new Response('Unsupported interaction type', { status: 400 });

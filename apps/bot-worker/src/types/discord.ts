@@ -1,6 +1,7 @@
 export const InteractionType = {
   Ping: 1,
-  ApplicationCommand: 2
+  ApplicationCommand: 2,
+  MessageComponent: 3
 } as const;
 
 export const InteractionResponseType = {
@@ -13,6 +14,7 @@ export type InteractionResponseTypeValue = (typeof InteractionResponseType)[keyo
 
 export interface InteractionData {
   name?: string;
+  custom_id?: string;
 }
 
 export interface Interaction {
@@ -21,6 +23,10 @@ export interface Interaction {
   data?: InteractionData;
   token: string;
   version: number;
+  app_permissions?: string;
+  member?: {
+    permissions?: string;
+  };
 }
 
 export interface InteractionResponse {
@@ -29,6 +35,7 @@ export interface InteractionResponse {
     content?: string;
     flags?: number;
     embeds?: unknown[];
+    components?: unknown[];
   };
 }
 
