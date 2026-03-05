@@ -1,0 +1,25 @@
+{
+  "name": "bot-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "wrangler build",
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish",
+    "register:commands": "ts-node scripts/register-commands.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^1.7.1",
+    "dotenv": "^10.0.0",
+    "undici": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "ts-node": "^10.9.1",
+    "vitest": "^0.34.5",
+    "wrangler": "^3.10.0"
+  }
+}

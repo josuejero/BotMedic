@@ -1,0 +1,11 @@
+{
+  "name": "botmedic",
+  "private": true,
+  "workspaces": [
+    "apps/bot-worker"
+  ],
+  "scripts": {
+    "test": "npm --workspace apps/bot-worker test",
+    "lint": "echo \"No lint configured yet\""
+  }
+}
