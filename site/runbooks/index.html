@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook Library · BotMedic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-list">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p>Library · Companion runbooks &amp; operator practice</p>
+        <h1>Failure runbooks</h1>
+        <p>
+          Each page below mirrors the logic in <code>apps/bot-worker/src/rules/index.ts</code>. The intent is documented in
+          <code>packages/playbooks/</code> and enriched with incident storytelling kept in <code>fixtures/incidents/</code>.
+        </p>
+      </header>
+
+      <section>
+        <h2>Browse by symptom</h2>
+        <div class="runbook-gallery" data-runbook-list></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      These runbooks are curated for portfolio reviews so recruiters see both the polished explanation and the support logic.
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>

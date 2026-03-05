@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>How diagnosis works · BotMedic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/site.css" />
+  </head>
+  <body data-page="diagnosis">
+    <nav class="page-nav">
+      <a href="index.html">Home</a>
+      <a href="runbooks/index.html">Runbook library</a>
+      <a href="quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p>Diagnostics narrative</p>
+        <h1>How diagnosis works</h1>
+        <p>
+          Each helpme symptom goes through a deterministic rule case. The evidence bundles, generates a confidence score, and the worker emits both
+          internal guidance plus customer-safe messaging.
+        </p>
+      </header>
+
+      <section>
+        <h2>Flow timeline</h2>
+        <div class="arch-diagram">
+          <div data-diagnosis-timeline></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Support logic vs. human story</h2>
+        <div class="runbook-columns" data-support-vs-human></div>
+      </section>
+
+      <section>
+        <h2>Signal sources</h2>
+        <p>
+          Evidence strings, first checks, and safe recovery steps all live in the source rule cases that drive <code>buildHelpmeResponse</code>
+          interactions. The companion site captures the same entries so reviewers can inspect both layers.
+        </p>
+        <a class="cta-button" href="runbooks/index.html">Browse runbooks</a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      Workflows documented here tie back to <code>apps/bot-worker/src/rules/index.ts</code> and precursor artifacts in <code>packages/playbooks/</code>.
+    </footer>
+
+    <script type="module" src="js/site.js"></script>
+  </body>
+</html>

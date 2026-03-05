@@ -1,0 +1,9 @@
+<svg width="280" height="220" viewBox="0 0 280 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="280" height="220" rx="32" fill="#0A0F1A" />
+  <path d="M40 60H240" stroke="#5CE1E6" stroke-width="2" stroke-linecap="round" />
+  <circle cx="60" cy="120" r="28" stroke="#5CE1E6" stroke-width="2" />
+  <circle cx="140" cy="140" r="18" stroke="#5CE1E6" stroke-width="2" />
+  <circle cx="200" cy="90" r="22" stroke="#5CE1E6" stroke-width="2" />
+  <rect x="50" y="150" width="180" height="30" rx="10" fill="#1A2636" stroke="#5CE1E6" stroke-width="2" />
+  <text x="70" y="170" fill="#5CE1E6" font-size="12">Companion surface</text>
+</svg>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>What to check first · BotMedic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/site.css" />
+  </head>
+  <body data-page="quick-reference">
+    <nav class="page-nav">
+      <a href="index.html">Home</a>
+      <a href="runbooks/index.html">Runbook library</a>
+      <a href="diagnosis.html">Diagnosis explainer</a>
+    </nav>
+
+    <main>
+      <header>
+        <p>Quick triage</p>
+        <h1>What to check first</h1>
+        <p>Use this table to guide immediate remediation before diving into a full runbook.</p>
+      </header>
+
+      <section>
+        <table class="quick-reference-table">
+          <thead>
+            <tr>
+              <th>Failure</th>
+              <th>Priority first checks</th>
+              <th>Safe next step</th>
+              <th>Runbook link</th>
+            </tr>
+          </thead>
+          <tbody data-reference-table-body></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Guidance</h2>
+        <p>
+          Always begin with <code>/envcheck</code> to ensure the environment bindings are valid. Next, confirm the command
+          flows (permissions, latency, helpme) behave before escalating to a runbook read.
+        </p>
+        <p>
+          These steps reinforce the workflow documented in <code>docs/architecture/README.md</code> and the rule cases powering the worker.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      The companion site stays in sync with the worker rule cases so both the polished explanation and the raw logic show in tandem.
+    </footer>
+
+    <script type="module" src="js/site.js"></script>
+  </body>
+</html>

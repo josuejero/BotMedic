@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BotMedic Companion</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/site.css" />
+  </head>
+  <body data-page="home">
+    <header class="site-hero">
+      <div>
+        <p>Phase 5 · Companion site &amp; runbook library</p>
+        <h1>BotMedic runs both the polished story and the operator logic.</h1>
+        <p>
+          Public-facing context, failure galleries, and interactive runbooks live here alongside the diagnostic
+          bones that power slash commands.
+        </p>
+        <div class="hero-cta">
+          <a class="cta-button" href="runbooks/index.html">Runbook library</a>
+          <a class="cta-button" href="diagnosis.html">How diagnosis works</a>
+          <a class="cta-button" href="quick-reference.html">What to check first</a>
+        </div>
+      </div>
+      <div>
+        <img src="assets/hero-illustration.svg" alt="BotMedic architecture sketch" />
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <h2>Command gallery</h2>
+        <div class="card-grid" data-command-gallery></div>
+      </section>
+
+      <section>
+        <h2>Architecture diagram</h2>
+        <div class="arch-diagram">
+          <div class="arch-cell">
+            <strong>Discord user</strong>
+            <p>Launches /health or /helpme from a guild member context.</p>
+          </div>
+          <div class="arch-cell">
+            <strong>Cloudflare Worker</strong>
+            <p>Validates signatures, routes commands, writes telemetry, returns ephemeral response.</p>
+          </div>
+          <div class="arch-cell">
+            <strong>Command/Rule layer</strong>
+            <p>Switches on command name, consults rule cases, and builds internal + customer replies.</p>
+          </div>
+          <div class="arch-cell">
+            <strong>Runbook surfaces</strong>
+            <p>Static site, runbook library, and incident gallery explain failures for reviewers.</p>
+          </div>
+          <div class="arch-connectors">
+            <svg viewBox="0 0 120 20">
+              <path d="M10 10 H110" stroke="var(--accent)" stroke-width="2" fill="none" />
+              <polygon points="110,6 120,10 110,14" fill="var(--accent)" />
+            </svg>
+          </div>
+          <p>
+            Each step mirrors the documentation in <code>docs/architecture/README.md</code>: Discord signs the payload,
+            the worker validates it, routes to the command handler, and optionally writes to Workers KV for dashboards.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Failure gallery</h2>
+        <div class="card-grid" data-failure-gallery></div>
+      </section>
+
+      <section>
+        <h2>Runbook library preview</h2>
+        <div class="card-grid" data-runbook-teaser></div>
+        <p>Runbooks mirror the RuleCase logic in <code>apps/bot-worker/src/rules/index.ts</code> and expand what teams need to do.</p>
+      </section>
+
+      <section>
+        <h2>Walkthrough highlights</h2>
+        <div class="walkthroughs">
+          <article class="walkthrough-card">
+            <div class="walkthrough-anim">
+              <h3>Ping flow</h3>
+              <div class="pulse"></div>
+              <div class="pulse delay-1"></div>
+              <div class="pulse delay-2"></div>
+              <p>Launch /health → Worker validates signature → ephemeral reply.</p>
+            </div>
+          </article>
+          <article class="walkthrough-card">
+            <div class="walkthrough-anim">
+              <h3>Symptom intake</h3>
+              <div class="pulse"></div>
+              <div class="pulse delay-1"></div>
+              <p>Select symptom → button interaction → internal/customer response.</p>
+            </div>
+          </article>
+          <article class="walkthrough-card">
+            <div class="walkthrough-anim">
+              <h3>Runbook handoff</h3>
+              <div class="pulse"></div>
+              <div class="pulse delay-2"></div>
+              <p>Case data becomes static runbook, bridging polished explanation + raw logic.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>How diagnosis works</h2>
+        <div class="arch-diagram">
+          <div>
+            <p>
+              Each symptom button routes through <code>apps/bot-worker/src/rules/index.ts</code>. Evidence gains a confidence score, a
+              diagnosis string is assembled, and the worker returns internal and customer-friendly text in <code>buildSupportResponseSections</code>.
+            </p>
+            <p>
+              This static page explains the flow and proofs that runbooks keep the story aligned with the worker logic.
+            </p>
+            <a class="cta-button" href="diagnosis.html">Read the full explanation</a>
+          </div>
+          <div>
+            <p data-reference-summary></p>
+            <p>
+              Need a quick checklist? <a href="quick-reference.html">See what to check first.</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      Companion content lives in <code>packages/playbooks/</code> and <code>fixtures/incidents/</code> when we expand trials.
+    </footer>
+
+    <script type="module" src="js/site.js"></script>
+  </body>
+</html>
