@@ -4,6 +4,9 @@ import { buildHealthResponse } from './commands/health';
 import { buildHelpmeResponse, buildHelpmeSymptomResponse } from './commands/helpme';
 import { buildLatencyResponse } from './commands/latency';
 import { buildPermissionsResponse } from './commands/permissions';
+import { handleDashboardRequest } from './dashboard';
+import { recordCommandUsage, recordHealthSuccess, recordDiagnosis } from './telemetry';
+import { getRuleCase } from './rules';
 import {
   InteractionType,
   InteractionResponseType,
@@ -18,6 +21,10 @@ function jsonResponse(body: unknown): Response {
 }
 
 export async function handleDiscordRequest(request: Request, env: EnvBindings): Promise<Response> {
+  if (request.method === 'GET') {
+    return handleDashboardRequest(request, env);
+  }
+
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
@@ -47,13 +54,21 @@ export async function handleDiscordRequest(request: Request, env: EnvBindings): 
   }
 
   if (interaction.type === InteractionType.MessageComponent) {
+    const rule = getRuleCase(interaction.data?.custom_id);
+    await recordDiagnosis(env, rule);
     return jsonResponse(buildHelpmeSymptomResponse(interaction.data?.custom_id));
   }
 
   if (interaction.type === InteractionType.ApplicationCommand) {
     const command = interaction.data?.name?.toLowerCase();
+    if (!command) {
+      return new Response('Missing command name', { status: 400 });
+    }
+
+    await recordCommandUsage(env, command);
     switch (command) {
       case 'health':
+        await recordHealthSuccess(env);
         return jsonResponse(buildHealthResponse(env));
       case 'envcheck':
         return jsonResponse(buildEnvCheckResponse(env));

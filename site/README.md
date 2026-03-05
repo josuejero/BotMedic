@@ -7,6 +7,7 @@ This folder now hosts the portfolio-ready Phase 5 companion experience:
 - `runbooks/<case>.html`: six dedicated runbook detail pages (one per `RuleCase`) that highlight symptoms, evidence, diagnosis, safe steps, customer messaging, and curated “don’t do this first” warnings while mirroring the internal logic layer.
 - `diagnosis.html`: explains how symptom intake flows through the rule system, what data is collected, and how we report both internal vs. customer-facing responses.
 - `quick-reference.html`: triage table that lists immediate first checks, safe next steps, and links back to each runbook.
+- The landing hero now links to `/dashboard`, which is rendered by the worker and surfaces the persisted telemetry plus curated incident samples.
 
 Shared assets:
 - `css/site.css`: visual system (dark theme, cards, tables, animations) used across every page.

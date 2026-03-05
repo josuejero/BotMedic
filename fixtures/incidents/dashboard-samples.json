@@ -1,0 +1,30 @@
+[
+  {
+    "id": "incident-2025-11-01",
+    "title": "Post-release routing hiccup",
+    "timestamp": "2025-11-01T12:15:00Z",
+    "summary": "A fresh deploy left the Worker route disabled, so /health timed out until the new route was reattached.",
+    "lesson": "Always confirm the interaction endpoint routes to the active worker after every publish."
+  },
+  {
+    "id": "incident-2025-12-07",
+    "title": "Discord key rotation",
+    "timestamp": "2025-12-07T08:45:00Z",
+    "summary": "Secrets were patched without updating Worker bindings, causing signature verification failures.",
+    "lesson": "Keep the Cloudflare secret mirror in sync with the Discord application key whenever you rotate credentials."
+  },
+  {
+    "id": "incident-2026-01-19",
+    "title": "Permission regression",
+    "timestamp": "2026-01-19T14:02:00Z",
+    "summary": "A channel override removed Embed Links, and /permissions immediately flagged missing flags.",
+    "lesson": "Update both bot roles and channel overrides; permission changes can silently block slash commands."
+  },
+  {
+    "id": "incident-2026-02-03",
+    "title": "Environment sundown",
+    "timestamp": "2026-02-03T21:33:00Z",
+    "summary": "BOT_ENV was left blank in staging, causing unpredictable feature flags until the missing value was restored.",
+    "lesson": "Use envcheck to validate required bindings before relying on the worker in production hits."
+  }
+]

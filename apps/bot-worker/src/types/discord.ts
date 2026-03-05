@@ -43,4 +43,5 @@ export interface EnvBindings {
   DISCORD_PUBLIC_KEY: string;
   BOT_VERSION?: string;
   BOT_ENV?: string;
+  DASHBOARD_KV?: KVNamespace;
 }

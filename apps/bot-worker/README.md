@@ -16,3 +16,8 @@ Cloudflare Worker serving Discord interactions. Phase 1 delivers signature valid
 - `src/types/discord.ts`: Minimal typings for interactions.
 - `scripts/register-commands.ts`: CLI that registers `/health` as a guild command using provided secrets.
 - `tests/interaction.test.ts`: Vitest suite ensuring signature validation, PING response, and `/health` payloads work without hitting Discord.
+
+## Phase 6 observability dashboard
+- Create a Workers KV namespace (suggested name `dashboard-metrics`) with `wrangler kv:namespace create dashboard-metrics --preview` and fill the `id`/`preview_id` for the `DASHBOARD_KV` binding in `wrangler.toml`.
+- The worker writes command usage counters, the last successful `/health`, and the latest diagnosed rule into `DASHBOARD_KV` whenever `/health` or `/helpme` interactions occur.
+- A lightweight HTML page is available at `GET /dashboard` and surfaces command counts, the most recent health/diagnosis entries, and the curated incident samples from `fixtures/incidents/dashboard-samples.json`.
