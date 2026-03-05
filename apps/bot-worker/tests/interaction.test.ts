@@ -13,6 +13,7 @@ import {
   EnvBindings,
   Interaction
 } from '../src/types/discord';
+import { RULE_CASES } from '../src/rules';
 
 const encoder = new TextEncoder();
 
@@ -150,14 +151,19 @@ describe('Discord interaction helper', () => {
   it('builds a helpme response with interactive buttons', () => {
     const response = buildHelpmeResponse();
     expect(response.data?.flags).toBe(64);
-    expect(response.data?.components).toHaveLength(1);
-    const firstRow = response.data?.components?.[0] as { components?: unknown[] } | undefined;
-    expect(firstRow?.components).toHaveLength(3);
+    const rows = response.data?.components ?? [];
+    const expectedRows = Math.ceil(RULE_CASES.length / 5);
+    expect(rows).toHaveLength(expectedRows);
+    const buttonCount = rows
+      .flatMap((row) => ((row as { components?: unknown[] })?.components ?? []))
+      .length;
+    expect(buttonCount).toBe(RULE_CASES.length);
   });
 
   it('builds a helpme symptom response for known buttons', () => {
-    const response = buildHelpmeSymptomResponse('helpme_symptom_commands');
-    expect(response.data?.content).toContain('You selected: Commands throwing errors');
+    const response = buildHelpmeSymptomResponse('helpme_symptom_token_config_issue');
+    expect(response.data?.content).toContain('You selected: Token/config issues');
+    expect(response.data?.content).toContain('Likely cause:');
   });
 
   it('handles helpme button interactions', async () => {
@@ -167,7 +173,7 @@ describe('Discord interaction helper', () => {
       {
         id: 'component-1',
         type: InteractionType.MessageComponent,
-        data: { custom_id: 'helpme_symptom_latency' },
+        data: { custom_id: 'helpme_symptom_token_config_issue' },
         token: 'token',
         version: 1
       },
@@ -182,7 +188,10 @@ describe('Discord interaction helper', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data?.flags).toBe(64);
-    expect(body.data?.content).toContain('Slow/laggy replies');
+    expect(body.data?.content).toContain('Token/config issues');
+    expect(body.data?.content).toContain('Likely cause:');
+    expect(body.data?.content).toContain('Confidence:');
+    expect(body.data?.content).toContain('Safe next step:');
   });
 
   it('responds to PING interactions with type 1', async () => {

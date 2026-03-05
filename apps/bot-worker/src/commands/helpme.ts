@@ -1,28 +1,25 @@
 import { InteractionResponse, InteractionResponseType } from '../types/discord';
+import { RULE_CASES, getRuleCase, formatRuleForMessage } from '../rules';
 
-const SYMPTOM_BUTTONS = [
-  { label: 'Bot offline or missing', emoji: '⚠️', customId: 'helpme_symptom_offline', style: 4 },
-  { label: 'Commands throwing errors', emoji: '🧪', customId: 'helpme_symptom_commands', style: 1 },
-  { label: 'Slow/laggy replies', emoji: '⏱️', customId: 'helpme_symptom_latency', style: 2 }
-];
+const BUTTONS_PER_ROW = 5;
 
-const SYMPTOM_GUIDANCE: Record<string, { title: string; detail: string }> = {
-  helpme_symptom_offline: {
-    title: 'Bot offline or missing',
-    detail:
-      'Check that the worker is deployed and the application command exists. Ensure the bot has the "Use Application Commands" permission in the guild.'
-  },
-  helpme_symptom_commands: {
-    title: 'Commands throwing errors',
-    detail:
-      'Review the worker logs for recent failures and confirm environment variables like Bot version and Discord public key are correctly configured.'
-  },
-  helpme_symptom_latency: {
-    title: 'Slow/laggy replies',
-    detail:
-      'Investigate any network throttling or high worker latency. Try redeploying or restarting integrations that sit in front of BotMedic.'
+function buildSymptomRows() {
+  const rows: { type: 1; components: unknown[] }[] = [];
+  for (let i = 0; i < RULE_CASES.length; i += BUTTONS_PER_ROW) {
+    const chunk = RULE_CASES.slice(i, i + BUTTONS_PER_ROW);
+    rows.push({
+      type: 1,
+      components: chunk.map((rule) => ({
+        type: 2,
+        style: rule.buttonStyle,
+        label: rule.buttonLabel,
+        custom_id: rule.customId,
+        emoji: { name: rule.buttonEmoji }
+      }))
+    });
   }
-};
+  return rows;
+}
 
 export function buildHelpmeResponse(): InteractionResponse {
   return {
@@ -31,29 +28,18 @@ export function buildHelpmeResponse(): InteractionResponse {
       content:
         'Thanks for asking for help. Select the symptom that best matches what you are seeing so we can focus the diagnostics.',
       flags: 64,
-      components: [
-        {
-          type: 1,
-          components: SYMPTOM_BUTTONS.map((button) => ({
-            type: 2,
-            style: button.style,
-            label: button.label,
-            custom_id: button.customId,
-            emoji: { name: button.emoji }
-          }))
-        }
-      ]
+      components: buildSymptomRows()
     }
   };
 }
 
 export function buildHelpmeSymptomResponse(customId?: string): InteractionResponse {
-  const symptom = customId ? SYMPTOM_GUIDANCE[customId] : undefined;
+  const rule = getRuleCase(customId);
   const lines: string[] = ['BotMedic symptom intake:'];
 
-  if (symptom) {
-    lines.push(`• You selected: ${symptom.title}`);
-    lines.push(`• Next step: ${symptom.detail}`);
+  if (rule) {
+    lines.push(`• You selected: ${rule.buttonLabel}`);
+    lines.push(...formatRuleForMessage(rule));
   } else {
     lines.push('• Thanks for the input! If nothing fits, keep sending new symptoms or open an issue.');
   }
