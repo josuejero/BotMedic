@@ -1,5 +1,5 @@
 import { InteractionResponse, InteractionResponseType } from '../types/discord';
-import { RULE_CASES, getRuleCase, formatRuleForMessage } from '../rules';
+import { RULE_CASES, getRuleCase, buildSupportResponseSections } from '../rules';
 
 const BUTTONS_PER_ROW = 5;
 
@@ -39,7 +39,10 @@ export function buildHelpmeSymptomResponse(customId?: string): InteractionRespon
 
   if (rule) {
     lines.push(`• You selected: ${rule.buttonLabel}`);
-    lines.push(...formatRuleForMessage(rule));
+    const { internal, customer } = buildSupportResponseSections(rule);
+    lines.push(...internal);
+    lines.push('');
+    lines.push(...customer);
   } else {
     lines.push('• Thanks for the input! If nothing fits, keep sending new symptoms or open an issue.');
   }

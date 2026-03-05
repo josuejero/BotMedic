@@ -179,16 +179,28 @@ export function getRuleCase(customId?: string): RuleCase | undefined {
   return RULE_CASES.find((rule) => rule.customId === customId);
 }
 
-export function formatRuleForMessage(rule: RuleCase): string[] {
-  return [
-    `• Symptom: ${rule.symptom}`,
-    `• Evidence: ${rule.evidence.join(' · ')}`,
+export interface SupportResponseSections {
+  internal: string[];
+  customer: string[];
+}
+
+export function buildSupportResponseSections(rule: RuleCase): SupportResponseSections {
+  const internal: string[] = [
+    'Internal diagnosis:',
     `• Diagnosis: ${rule.diagnosis}`,
-    `• Likely cause: ${rule.likelyCause}`,
-    `• Confidence: ${rule.confidenceScore}%`,
-    `• First checks: ${rule.firstChecks.join(' · ')}`,
-    `• Safe next step: ${rule.safeNextStep}`,
-    `• Escalation threshold: ${rule.escalationThreshold}`,
-    `• Customer explanation: ${rule.customerSafeExplanation}`
+    `• Probable root cause: ${rule.likelyCause}`,
+    `• Exact checks performed: ${rule.firstChecks.join(' · ')}`,
+    `• Confidence level: ${rule.confidenceScore}%`,
+    `• Technical next step: ${rule.safeNextStep}`,
+    `• When to escalate: ${rule.escalationThreshold}`
   ];
+
+  const customer: string[] = [
+    'Customer-facing explanation:',
+    `• What happened: ${rule.customerSafeExplanation} We’re keeping a close eye on it so nothing catches you off guard.`,
+    `• What to try next: ${rule.safeNextStep}`,
+    `• When to contact support again: ${rule.escalationThreshold} Expect us to monitor the follow-up window before escalating.`
+  ];
+
+  return { internal, customer };
 }

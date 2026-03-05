@@ -163,7 +163,10 @@ describe('Discord interaction helper', () => {
   it('builds a helpme symptom response for known buttons', () => {
     const response = buildHelpmeSymptomResponse('helpme_symptom_token_config_issue');
     expect(response.data?.content).toContain('You selected: Token/config issues');
-    expect(response.data?.content).toContain('Likely cause:');
+    expect(response.data?.content).toContain('Internal diagnosis:');
+    expect(response.data?.content).toContain('Probable root cause:');
+    expect(response.data?.content).toContain('Confidence level:');
+    expect(response.data?.content).toContain('Technical next step:');
   });
 
   it('handles helpme button interactions', async () => {
@@ -189,9 +192,14 @@ describe('Discord interaction helper', () => {
     const body = await response.json();
     expect(body.data?.flags).toBe(64);
     expect(body.data?.content).toContain('Token/config issues');
-    expect(body.data?.content).toContain('Likely cause:');
-    expect(body.data?.content).toContain('Confidence:');
-    expect(body.data?.content).toContain('Safe next step:');
+    expect(body.data?.content).toContain('Internal diagnosis:');
+    expect(body.data?.content).toContain('Diagnosis: Invalid request signatures');
+    expect(body.data?.content).toContain('Probable root cause:');
+    expect(body.data?.content).toContain('Exact checks performed:');
+    expect(body.data?.content).toContain('Customer-facing explanation:');
+    expect(body.data?.content).toContain('What happened:');
+    expect(body.data?.content).toContain('What to try next:');
+    expect(body.data?.content).toContain('When to contact support again:');
   });
 
   it('responds to PING interactions with type 1', async () => {
