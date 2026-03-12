@@ -7,7 +7,10 @@
   ],
   "scripts": {
     "test": "npm --workspace apps/bot-worker test",
-    "generate-site-data": "npx ts-node-esm scripts/generate-site-data.mts",
+    "generate-site-data": "tsx scripts/generate-site-data.mts",
     "lint": "echo \"No lint configured yet\""
+  },
+  "devDependencies": {
+    "tsx": "4.21.0"
   }
 }
