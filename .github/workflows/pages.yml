@@ -37,7 +37,7 @@ jobs:
         run: npm test
 
       - name: Upload site assets
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
@@ -55,4 +55,4 @@ jobs:
         uses: actions/download-pages-artifact@v1
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
