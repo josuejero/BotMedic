@@ -1,0 +1,4451 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    pages.yml
+apps/
+  bot-worker/
+    scripts/
+      register-commands.ts
+    src/
+      commands/
+        envcheck.ts
+        health.ts
+        helpme.ts
+        incident.ts
+        latency.ts
+        permissions.ts
+      types/
+        discord.ts
+      utils/
+        discord.ts
+      dashboard.ts
+      index.ts
+      telemetry.ts
+    tests/
+      dashboard.test.ts
+      incident-library.test.ts
+      interaction.test.ts
+      rules.test.ts
+    package.json
+    README.md
+    tsconfig.json
+docs/
+  architecture/
+    README.md
+  test-checklists/
+    commands.md
+fixtures/
+  incidents/
+    customer-safe.json
+    dashboard-samples.json
+    diagnosis-snapshots.json
+    README.md
+    symptoms.json
+packages/
+  commands/
+    src/
+      index.ts
+    package.json
+    tsconfig.json
+  playbooks/
+    README.md
+  rules/
+    src/
+      index.ts
+    package.json
+    README.md
+    tsconfig.json
+scripts/
+  generate-site-data.mts
+site/
+  assets/
+    hero-illustration.svg
+  css/
+    site.css
+  js/
+    data.js
+    site.js
+  runbooks/
+    dependency_runtime_mismatch.html
+    index.html
+    invalid_token.html
+    missing_bot_permission.html
+    missing_env_var.html
+    role_channel_permission_denial.html
+    slow_handler_deferred.html
+    stale_deployment.html
+    webhook_endpoint_error.html
+    wrong_interaction_url.html
+    wrong_public_key.html
+  diagnosis.html
+  index.html
+  quick-reference.html
+  README.md
+tests/
+  README.md
+.gitignore
+package.json
+README.md
+tsconfig.base.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="apps/bot-worker/src/commands/envcheck.ts">
+import { InteractionResponse, InteractionResponseType, EnvBindings } from '../types/discord';
+
+const VALID_ENVIRONMENTS = ['development', 'staging', 'production', 'test'] as const;
+
+type EnvRule = {
+  key: keyof EnvBindings;
+  label: string;
+  required: boolean;
+  validator?: (value: string) => boolean;
+  hint?: string;
+};
+
+const ENV_RULES: EnvRule[] = [
+  {
+    key: 'DISCORD_PUBLIC_KEY',
+    label: 'Discord public key',
+    required: true,
+    validator: (value) => /^([0-9a-fA-F]{64})$/.test(value),
+    hint: 'must be a 32-byte hex string provided by the Discord developer portal'
+  },
+  {
+    key: 'BOT_VERSION',
+    label: 'Bot version tag',
+    required: false,
+    validator: (value) => value.length > 0,
+    hint: 'used for health responses and release tracking'
+  },
+  {
+    key: 'BOT_ENV',
+    label: 'Bot environment',
+    required: false,
+    validator: (value) => VALID_ENVIRONMENTS.includes(value.toLowerCase() as typeof VALID_ENVIRONMENTS[number]),
+    hint: `should match one of: ${VALID_ENVIRONMENTS.join(', ')}`
+  }
+];
+
+export function buildEnvCheckResponse(env: EnvBindings): InteractionResponse {
+  const missingRequired: string[] = [];
+  const invalid: string[] = [];
+  const optionalMissing: string[] = [];
+
+  for (const rule of ENV_RULES) {
+    const rawValue = env[rule.key];
+    const normalized = typeof rawValue === 'string' ? rawValue.trim() : '';
+    if (!normalized) {
+      if (rule.required) {
+        missingRequired.push(rule.label);
+      } else {
+        optionalMissing.push(rule.label);
+      }
+      continue;
+    }
+
+    if (rule.validator && !rule.validator(normalized)) {
+      invalid.push(`${rule.label} (${rule.hint ?? 'invalid value'})`);
+    }
+  }
+
+  const lines: string[] = ['BotMedic environment check:'];
+
+  if (missingRequired.length) {
+    lines.push(`• ⚠️ Missing required values: ${missingRequired.join(', ')}`);
+  }
+
+  if (invalid.length) {
+    lines.push(`• ⚠️ Malformed/mismatched values: ${invalid.join(', ')}`);
+  }
+
+  if (!missingRequired.length && !invalid.length) {
+    lines.push('• ✅ Required variables look good.');
+  }
+
+  if (optionalMissing.length) {
+    lines.push(`• ℹ️ Optional but recommended: ${optionalMissing.join(', ')}`);
+  }
+
+  if (env.BOT_VERSION) {
+    lines.push(`• Bot version: ${env.BOT_VERSION}`);
+  }
+
+  if (env.BOT_ENV) {
+    lines.push(`• Environment: ${env.BOT_ENV}`);
+  }
+
+  if (!env.BOT_ENV) {
+    lines.push('• Environment not set; defaulting to development until you provide BOT_ENV.');
+  }
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content: lines.join('\n'),
+      flags: 64
+    }
+  };
+}
+</file>
+
+<file path="apps/bot-worker/src/commands/health.ts">
+import { InteractionResponseType, InteractionResponse, EnvBindings } from '../types/discord';
+
+export function buildHealthResponse(env: EnvBindings): InteractionResponse {
+  const version = env.BOT_VERSION ?? '0.1.0';
+  const environment = env.BOT_ENV ?? 'development';
+  const timestamp = new Date().toISOString();
+  const content = `✅ BotMedic v${version} · environment: ${environment} · timestamp: ${timestamp}`;
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content,
+      flags: 64
+    }
+  };
+}
+</file>
+
+<file path="apps/bot-worker/src/commands/latency.ts">
+import { InteractionResponse, InteractionResponseType } from '../types/discord';
+
+const LATENCY_WARNING_THRESHOLD_MS = 400;
+
+function parseDiscordTimestamp(timestamp?: string | null): number | undefined {
+  if (!timestamp) {
+    return undefined;
+  }
+
+  const trimmed = timestamp.trim();
+  const asNumber = Number(trimmed);
+
+  if (!Number.isNaN(asNumber)) {
+    return trimmed.length === 10 ? asNumber * 1000 : asNumber;
+  }
+
+  const parsed = Date.parse(trimmed);
+  if (!Number.isNaN(parsed)) {
+    return parsed;
+  }
+
+  return undefined;
+}
+
+export function buildLatencyResponse(headerTimestamp?: string | null, now = Date.now()): InteractionResponse {
+  const timestampMs = parseDiscordTimestamp(headerTimestamp);
+  if (!timestampMs) {
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content:
+          'Latency check needs the Discord timestamp header, but it was missing or unparsable. Retry the command in a guild channel.',
+      }
+    };
+  }
+
+  const latencyMs = Math.max(0, now - timestampMs);
+  const status = latencyMs < LATENCY_WARNING_THRESHOLD_MS ? 'healthy' : 'warning';
+  const content = `Latency is ${latencyMs}ms (${status}; healthy < ${LATENCY_WARNING_THRESHOLD_MS}ms).`;
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content
+    }
+  };
+}
+</file>
+
+<file path="apps/bot-worker/src/commands/permissions.ts">
+import { InteractionResponse, InteractionResponseType, Interaction } from '../types/discord';
+
+const REQUIRED_PERMISSIONS = [
+  { label: 'View channel', bit: 1n << 10n },
+  { label: 'Send messages', bit: 1n << 11n },
+  { label: 'Embed links', bit: 1n << 14n },
+  { label: 'Read message history', bit: 1n << 16n },
+  { label: 'Use application commands', bit: 1n << 31n }
+];
+
+function parsePermissions(value?: string): bigint | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    return BigInt(value);
+  } catch (error) {
+    console.warn('Unable to parse permission bitfield', error);
+    return undefined;
+  }
+}
+
+export function buildPermissionsResponse(interaction: Interaction): InteractionResponse {
+  const rawBitfield = interaction.app_permissions ?? interaction.member?.permissions;
+  const parsed = parsePermissions(rawBitfield);
+  const lines: string[] = ['BotMedic permission check:'];
+
+  if (!parsed) {
+    lines.push(
+      '• ⚠️ Unable to read the bot permission bitfield from the interaction. Please confirm the bot is in a guild channel.'
+    );
+    lines.push('• ℹ️ This check relies on the `app_permissions` value that Discord includes with slash commands.');
+
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: lines.join('\n'),
+        flags: 64
+      }
+    };
+  }
+
+  const missingPermissions = REQUIRED_PERMISSIONS.filter((perm) => (parsed & perm.bit) === 0n);
+
+  if (missingPermissions.length) {
+    lines.push(`• ⚠️ Missing the following permissions: ${missingPermissions.map((perm) => perm.label).join(', ')}`);
+    lines.push('• ℹ️ Update the bot role or channel overrides so it can read/send artifacts and register commands.');
+  } else {
+    lines.push('• ✅ Bot has all the essential channel permissions for diagnostics.');
+  }
+
+  lines.push(`• Checked flags: ${REQUIRED_PERMISSIONS.map((perm) => perm.label).join(', ')}`);
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content: lines.join('\n'),
+      flags: 64
+    }
+  };
+}
+</file>
+
+<file path="apps/bot-worker/src/utils/discord.ts">
+import * as ed25519 from '@noble/ed25519';
+
+const encoder = new TextEncoder();
+
+function hexToBytes(hex: string): Uint8Array {
+  const cleaned = hex.startsWith('0x') ? hex.slice(2) : hex;
+  if (cleaned.length % 2 !== 0) {
+    throw new Error('Invalid hex string length');
+  }
+  const bytes = new Uint8Array(cleaned.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(cleaned.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+/**
+ * Cloudflare Worker needs to validate the signature Discord sends with each interaction.
+ * Discord attaches `X-Signature-Ed25519` and `X-Signature-Timestamp` headers so the worker
+ * can verify the raw body payload was actually sent by Discord.
+ */
+export async function verifyDiscordRequest(
+  timestamp: string,
+  body: string,
+  signature: string,
+  publicKey: string
+): Promise<boolean> {
+  if (!timestamp || !signature || !publicKey) {
+    return false;
+  }
+
+  const message = timestamp + body;
+  const messageBytes = encoder.encode(message);
+  const signatureBytes = hexToBytes(signature);
+  const publicKeyBytes = hexToBytes(publicKey);
+
+  if (signatureBytes.length !== 64 || publicKeyBytes.length !== 32) {
+    return false;
+  }
+
+  try {
+    return await ed25519.verify(signatureBytes, messageBytes, publicKeyBytes);
+  } catch {
+    return false;
+  }
+}
+</file>
+
+<file path="apps/bot-worker/src/dashboard.ts">
+import { EnvBindings } from './types/discord';
+import { readDashboardData, COMMAND_NAMES, DashboardData } from './telemetry';
+import incidentSamples from '../../fixtures/incidents/dashboard-samples.json';
+
+export interface IncidentSample {
+  id: string;
+  title: string;
+  summary: string;
+  timestamp: string;
+  lesson: string;
+}
+
+const INCIDENT_SAMPLES: IncidentSample[] = incidentSamples;
+
+function formatTimestamp(value?: string): string {
+  if (!value) {
+    return 'Not recorded yet';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleString('en-US', { timeZone: 'UTC', hour12: false });
+}
+
+export function renderDashboardHtml(data: DashboardData, incidents: IncidentSample[] = INCIDENT_SAMPLES): string {
+  const healthSection = data.lastHealth
+    ? `<p><strong>Timestamp:</strong> ${formatTimestamp(data.lastHealth.timestamp)}</p>
+       <p><strong>Environment:</strong> ${data.lastHealth.environment ?? 'unknown'}</p>`
+    : '<p>No successful health checks recorded yet.</p>';
+
+  const diagnosisSection = data.lastDiagnosis
+    ? `<p><strong>${data.lastDiagnosis.label}</strong> (${data.lastDiagnosis.ruleId})</p>
+       <p>Recommended next step: ${data.lastDiagnosis.safeNextStep}</p>
+       <p><small>Captured ${formatTimestamp(data.lastDiagnosis.timestamp)}</small></p>`
+    : '<p>No diagnoses captured yet.</p>';
+
+  const commandList = COMMAND_NAMES.map((command) => {
+    const count = data.commandCounts[command] ?? 0;
+    return `<li><span>${command}</span><strong>${count}</strong></li>`;
+  }).join('');
+
+  const incidentMarkup = incidents
+    .map(
+      (incident) => `
+        <article>
+          <h4>${incident.title}</h4>
+          <p>${incident.summary}</p>
+          <p class="lesson">Lesson: ${incident.lesson}</p>
+          <p class="timestamp">${formatTimestamp(incident.timestamp)}</p>
+        </article>
+      `
+    )
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BotMedic dashboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: system-ui, 'Segoe UI', sans-serif;
+        background-color: #0f1115;
+        color: #f5f6fb;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0 0 8px;
+        color: #ffffff;
+      }
+      main {
+        display: grid;
+        gap: 24px;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      section {
+        background: #131824;
+        border: 1px solid #20283c;
+        border-radius: 12px;
+        padding: 20px;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      li {
+        flex: 1 1 140px;
+        padding: 12px;
+        border-radius: 10px;
+        background: #1e2536;
+        border: 1px solid #2b3350;
+      }
+      li span {
+        display: block;
+        font-size: 0.85rem;
+        color: #97a3c4;
+      }
+      li strong {
+        font-size: 1.25rem;
+      }
+      article {
+        border-bottom: 1px solid #1c2337;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+      }
+      article:last-child {
+        border-bottom: none;
+      }
+      .lesson {
+        color: #b3c3ff;
+      }
+      .timestamp {
+        font-size: 0.8rem;
+        color: #7a83a3;
+      }
+      .note {
+        font-size: 0.9rem;
+        color: #99a5c6;
+      }
+      footer {
+        text-align: center;
+        font-size: 0.8rem;
+        color: #7a83a3;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>BotMedic dashboard</h1>
+        <p class="note">Last observed telemetry stored in Workers KV (fallbacks when the namespace is missing).</p>
+      </header>
+      <section>
+        <h2>Command usage</h2>
+        <ul>${commandList}</ul>
+      </section>
+      <section>
+        <h2>Last successful /health</h2>
+        ${healthSection}
+      </section>
+      <section>
+        <h2>Last failed diagnosis</h2>
+        ${diagnosisSection}
+      </section>
+      <section>
+        <h2>Recent incident samples</h2>
+        ${incidentMarkup}
+      </section>
+    </main>
+    <footer>BotMedic · ${new Date().toISOString()}</footer>
+  </body>
+</html>`;
+}
+
+export async function handleDashboardRequest(request: Request, env: EnvBindings): Promise<Response> {
+  const url = new URL(request.url);
+  if (url.pathname !== '/dashboard') {
+    return new Response('Not found', { status: 404 });
+  }
+  if (request.method !== 'GET') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+
+  const data = await readDashboardData(env);
+  const body = renderDashboardHtml(data);
+  return new Response(body, {
+    headers: {
+      'content-type': 'text/html; charset=utf-8'
+    }
+  });
+}
+</file>
+
+<file path="apps/bot-worker/tests/dashboard.test.ts">
+import { describe, it, expect } from 'vitest';
+import { DashboardData, COMMAND_NAMES } from '../src/telemetry';
+import { IncidentSample, renderDashboardHtml } from '../src/dashboard';
+
+describe('dashboard renderer', () => {
+  it('includes counts, health, diagnosis, and incident samples', () => {
+    const commandCounts = COMMAND_NAMES.reduce(
+      (acc, command) => ({ ...acc, [command]: 3 }),
+      {} as Record<string, number>
+    ) as DashboardData['commandCounts'];
+
+    const data: DashboardData = {
+      commandCounts,
+      lastHealth: {
+        timestamp: '2026-03-05T12:00:00Z',
+        environment: 'staging'
+      },
+      lastDiagnosis: {
+        timestamp: '2026-03-05T12:05:00Z',
+        ruleId: 'token_config_issue',
+        label: 'Token/config issues',
+        safeNextStep: 'Validate the public key copy/paste.'
+      }
+    };
+
+    const incidents: IncidentSample[] = [
+      {
+        id: 'test-1',
+        title: 'Synthetic incident',
+        summary: 'Something broke and was documented.',
+        timestamp: '2025-10-01T00:00:00Z',
+        lesson: 'Document postmortems in the fixtures folder.'
+      }
+    ];
+
+    const html = renderDashboardHtml(data, incidents);
+
+    for (const command of COMMAND_NAMES) {
+      expect(html).toContain(`<span>${command}</span>`);
+    }
+    expect(html).toContain('Last successful /health');
+    expect(html).toContain('Token/config issues');
+    expect(html).toContain('Validate the public key copy/paste.');
+    expect(html).toContain('Synthetic incident');
+    expect(html).toContain('Document postmortems in the fixtures folder.');
+  });
+});
+</file>
+
+<file path="apps/bot-worker/tsconfig.json">
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "ESNext",
+    "target": "ES2020",
+    "types": ["vitest"]
+  },
+  "include": ["src", "scripts", "tests"]
+}
+</file>
+
+<file path="fixtures/incidents/customer-safe.json">
+{
+  "invalid_token": {
+    "customerSafeExplanation": "BotMedic cannot authenticate with Discord until the bot credentials are restored; we are refreshing them now.",
+    "safeNextStep": "Rotate or restore the bot token, redeploy, then run /health in a staging guild."
+  },
+  "missing_bot_permission": {
+    "customerSafeExplanation": "BotMedic is blocked from sending diagnostic replies because it lacks required Discord permissions.",
+    "safeNextStep": "Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands."
+  },
+  "missing_env_var": {
+    "customerSafeExplanation": "BotMedic is missing configuration values, so we need to restore those secrets before it can respond reliably.",
+    "safeNextStep": "Add the missing variables with valid values and redeploy the worker."
+  },
+  "wrong_interaction_url": {
+    "customerSafeExplanation": "Discord cannot find the address for BotMedic, so commands are dropped before they reach us.",
+    "safeNextStep": "Update the interaction URL to the correct worker and run /health to verify responses."
+  },
+  "wrong_public_key": {
+    "customerSafeExplanation": "BotMedic is reachable, but Discord rejects the signed payloads because the public key is misconfigured.",
+    "safeNextStep": "Paste the correct public key into secrets and re-run /health to confirm verification succeeds."
+  },
+  "dependency_runtime_mismatch": {
+    "customerSafeExplanation": "BotMedic encountered a runtime incompatibility; we are adjusting the build so it can run in Cloudflare Workers.",
+    "safeNextStep": "Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy."
+  },
+  "stale_deployment": {
+    "customerSafeExplanation": "BotMedic is temporarily offline because the current deployment isn't wired up; we are promoting the latest build.",
+    "safeNextStep": "Re-deploy or re-enable the worker route, then test /health within the same guild."
+  },
+  "webhook_endpoint_error": {
+    "customerSafeExplanation": "BotMedic cannot process interactions right now because the worker code is crashing; we are addressing the issue.",
+    "safeNextStep": "Fix the startup exception (missing dependency or config) and redeploy; then test /health."
+  },
+  "role_channel_permission_denial": {
+    "customerSafeExplanation": "BotMedic needs an extra permission tweak because channel-level restrictions are preventing replies.",
+    "safeNextStep": "Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels."
+  },
+  "slow_handler_deferred": {
+    "customerSafeExplanation": "We have a slow diagnostic path, so we are deferring the response until the work completes to keep Discord happy.",
+    "safeNextStep": "Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message."
+  }
+}
+</file>
+
+<file path="fixtures/incidents/dashboard-samples.json">
+[
+  {
+    "id": "incident-2025-11-01",
+    "title": "Post-release routing hiccup",
+    "timestamp": "2025-11-01T12:15:00Z",
+    "summary": "A fresh deploy left the Worker route disabled, so /health timed out until the new route was reattached.",
+    "lesson": "Always confirm the interaction endpoint routes to the active worker after every publish."
+  },
+  {
+    "id": "incident-2025-12-07",
+    "title": "Discord key rotation",
+    "timestamp": "2025-12-07T08:45:00Z",
+    "summary": "Secrets were patched without updating Worker bindings, causing signature verification failures.",
+    "lesson": "Keep the Cloudflare secret mirror in sync with the Discord application key whenever you rotate credentials."
+  },
+  {
+    "id": "incident-2026-01-19",
+    "title": "Permission regression",
+    "timestamp": "2026-01-19T14:02:00Z",
+    "summary": "A channel override removed Embed Links, and /permissions immediately flagged missing flags.",
+    "lesson": "Update both bot roles and channel overrides; permission changes can silently block slash commands."
+  },
+  {
+    "id": "incident-2026-02-03",
+    "title": "Environment sundown",
+    "timestamp": "2026-02-03T21:33:00Z",
+    "summary": "BOT_ENV was left blank in staging, causing unpredictable feature flags until the missing value was restored.",
+    "lesson": "Use envcheck to validate required bindings before relying on the worker in production hits."
+  }
+]
+</file>
+
+<file path="fixtures/incidents/diagnosis-snapshots.json">
+{
+  "invalid_token": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord rejects the bot token, so interactions never hit the worker despite Cloudflare being available.",
+      "• Probable root cause: DISCORD_BOT_TOKEN in Cloudflare is empty, expired, or mismatched with the Discord application.",
+      "• Exact checks performed: Copy the bot token from the Discord developer portal and paste it into Cloudflare secrets verbatim · Trigger a redeploy so the worker picks up the rotated token before testing /health again",
+      "• Confidence level: 90%",
+      "• Technical next step: Rotate or restore the bot token, redeploy, then run /health in a staging guild.",
+      "• When to escalate: Escalate if Discord still rejects commands with 401s after two redeploys with the verified token."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic cannot authenticate with Discord until the bot credentials are restored; we are refreshing them now. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Rotate or restore the bot token, redeploy, then run /health in a staging guild.",
+      "• When to contact support again: Escalate if Discord still rejects commands with 401s after two redeploys with the verified token. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "missing_bot_permission": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord refuses to run commands because the bot role does not have the required high-level permissions.",
+      "• Probable root cause: Core permission bits (view/send/embed/use application commands) are absent on the bot role.",
+      "• Exact checks performed: Run /permissions and capture the list of missing flags · Compare the bot role's permission bits to the documented checklist and update as needed",
+      "• Confidence level: 82%",
+      "• Technical next step: Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands.",
+      "• When to escalate: Escalate if permission edits still yield missing flags after two rounds of updates."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is blocked from sending diagnostic replies because it lacks required Discord permissions. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands.",
+      "• When to contact support again: Escalate if permission edits still yield missing flags after two rounds of updates. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "missing_env_var": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: One or more critical environment variables are not set or malformed, so the worker runs with incomplete configuration.",
+      "• Probable root cause: Secrets were not inserted into the Cloudflare deployment or were mistyped during the last deploy.",
+      "• Exact checks performed: Run /envcheck; ensure the required keys are present and formatted correctly · Compare the Cloudflare secret values to an .env.local copy or deployment manifest",
+      "• Confidence level: 78%",
+      "• Technical next step: Add the missing variables with valid values and redeploy the worker.",
+      "• When to escalate: Escalate if required bindings remain missing after deployments to both staging and production."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is missing configuration values, so we need to restore those secrets before it can respond reliably. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Add the missing variables with valid values and redeploy the worker.",
+      "• When to contact support again: Escalate if required bindings remain missing after deployments to both staging and production. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "wrong_interaction_url": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord is hitting an outdated or missing interaction URL, so requests never arrive at the current worker.",
+      "• Probable root cause: The registered interaction endpoint points to an old subdomain, path, or disabled worker route.",
+      "• Exact checks performed: Confirm the interaction URL in Discord matches the latest published Cloudflare worker domain and path · Check Cloudflare Workers routes and DNS records to ensure they are active",
+      "• Confidence level: 74%",
+      "• Technical next step: Update the interaction URL to the correct worker and run /health to verify responses.",
+      "• When to escalate: Escalate if the endpoint remains unreachable for more than 10 minutes after updates."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: Discord cannot find the address for BotMedic, so commands are dropped before they reach us. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Update the interaction URL to the correct worker and run /health to verify responses.",
+      "• When to contact support again: Escalate if the endpoint remains unreachable for more than 10 minutes after updates. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "wrong_public_key": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord signs requests with the most recent public key, but the worker still uses the old or missing value.",
+      "• Probable root cause: DISCORD_PUBLIC_KEY in the worker configuration is stale, empty, or miscopied.",
+      "• Exact checks performed: Copy the public key from the Discord developer portal and verify the 64-character hex string matches Cloudflare · Restart or redeploy the worker so the new key is picked up before rerunning commands",
+      "• Confidence level: 86%",
+      "• Technical next step: Paste the correct public key into secrets and re-run /health to confirm verification succeeds.",
+      "• When to escalate: Escalate if signature failures persist across builds after updating the public key."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is reachable, but Discord rejects the signed payloads because the public key is misconfigured. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Paste the correct public key into secrets and re-run /health to confirm verification succeeds.",
+      "• When to contact support again: Escalate if signature failures persist across builds after updating the public key. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "dependency_runtime_mismatch": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: A dependency or platform API the worker relies on is unavailable in the deployed Cloudflare runtime.",
+      "• Probable root cause: The build output targets a higher Node version or includes modules that the Workers environment forbids.",
+      "• Exact checks performed: Inspect the bundle or stack trace for Web API/polyfill stderr · Compare dependency versions between local builds and the deployed lockfile",
+      "• Confidence level: 66%",
+      "• Technical next step: Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy.",
+      "• When to escalate: Escalate if runtime mismatches continue after locking the build target."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic encountered a runtime incompatibility; we are adjusting the build so it can run in Cloudflare Workers. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy.",
+      "• When to contact support again: Escalate if runtime mismatches continue after locking the build target. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "stale_deployment": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Discord is hitting an inactive or stale worker deployment, so commands never hit the current logic.",
+      "• Probable root cause: The worker route is disabled or the DNS still points to an older release after a deploy.",
+      "• Exact checks performed: Check Cloudflare Worker deployments, ensuring the active version has the latest code · Confirm DNS or custom domain routes are enabled and point to the right worker",
+      "• Confidence level: 75%",
+      "• Technical next step: Re-deploy or re-enable the worker route, then test /health within the same guild.",
+      "• When to escalate: Escalate if multiple deployments keep routing to stale builds and commands stay unresponsive."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic is temporarily offline because the current deployment isn't wired up; we are promoting the latest build. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Re-deploy or re-enable the worker route, then test /health within the same guild.",
+      "• When to contact support again: Escalate if multiple deployments keep routing to stale builds and commands stay unresponsive. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "webhook_endpoint_error": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: The worker code crashes at startup or during request parsing, so Discord sees a webhook failure before flow reaches commands.",
+      "• Probable root cause: Unhandled runtime errors—extra dependencies, misconfigured bindings, or bundler output—cause the worker to crash.",
+      "• Exact checks performed: Review Cloudflare worker logs for unhandled exceptions or module resolution errors · Confirm every dependency referenced by the worker is included in package-lock and is published",
+      "• Confidence level: 71%",
+      "• Technical next step: Fix the startup exception (missing dependency or config) and redeploy; then test /health.",
+      "• When to escalate: Escalate if webhook failures persist after fixing the reported crash points."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic cannot process interactions right now because the worker code is crashing; we are addressing the issue. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Fix the startup exception (missing dependency or config) and redeploy; then test /health.",
+      "• When to contact support again: Escalate if webhook failures persist after fixing the reported crash points. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "role_channel_permission_denial": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: Channel overrides or role hierarchies deny permissions, preventing BotMedic from responding even when global flags are set.",
+      "• Probable root cause: A channel override or higher-priority role removes View/Send permissions after the interaction starts.",
+      "• Exact checks performed: Inspect channel overrides where diagnostics fail and ensure the bot role can still send messages · Check if any higher-priority roles revoke embeds or application command usage",
+      "• Confidence level: 68%",
+      "• Technical next step: Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels.",
+      "• When to escalate: Escalate if overrides continue to deny permissions after manual fixes."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: BotMedic needs an extra permission tweak because channel-level restrictions are preventing replies. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels.",
+      "• When to contact support again: Escalate if overrides continue to deny permissions after manual fixes. Expect us to monitor the follow-up window before escalating."
+    ]
+  },
+  "slow_handler_deferred": {
+    "internal": [
+      "Internal diagnosis:",
+      "• Diagnosis: The interaction handler takes longer than 3 seconds, so Discord invalidates the single-use token unless a deferred ack is sent.",
+      "• Probable root cause: Long-running checks (e.g., telemetry queries or dependency tests) are wrapped in the slash command path.",
+      "• Exact checks performed: Identify the slow-running dependencies and isolate them outside of the immediate interaction handler · Ensure every long-running path sends a deferred response with type 5 before executing heavy work",
+      "• Confidence level: 59%",
+      "• Technical next step: Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message.",
+      "• When to escalate: Escalate if Discord rejects tokens even after acknowledging the interaction within 3 seconds."
+    ],
+    "customer": [
+      "Customer-facing explanation:",
+      "• What happened: We have a slow diagnostic path, so we are deferring the response until the work completes to keep Discord happy. We're keeping a close eye on it so nothing catches you off guard.",
+      "• What to try next: Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message.",
+      "• When to contact support again: Escalate if Discord rejects tokens even after acknowledging the interaction within 3 seconds. Expect us to monitor the follow-up window before escalating."
+    ]
+  }
+}
+</file>
+
+<file path="fixtures/incidents/README.md">
+# fixtures/incidents
+
+Record sample incidents, failure galleries, and customer narratives. This directory will seed the companion site and tests with recognizable troubleshooting scenarios.
+</file>
+
+<file path="fixtures/incidents/symptoms.json">
+[
+  {
+    "id": "invalid_token",
+    "label": "Invalid/rotated bot token",
+    "symptom": "Slash commands return 401s or disappear before reaching the worker whenever Discord hits the endpoint.",
+    "evidence": [
+      "Discord logs list \"401 Unauthorized\" before the HTTP body ever arrives",
+      "Worker traces show zero requests even though Discord reports interaction attempts",
+      "A fresh deployment or role change coincided with the bot token being rotated"
+    ]
+  },
+  {
+    "id": "missing_bot_permission",
+    "label": "Missing bot permission",
+    "symptom": "Slash commands or responses get dropped/rejected with warnings about missing permissions.",
+    "evidence": [
+      "The /permissions command reports missing flags such as Send Messages or Use Application Commands",
+      "Discord logs mention \"Missing Permissions\" when the bot tries to send an interaction reply",
+      "The bot role lacks the same permission bits the docs require"
+    ]
+  },
+  {
+    "id": "missing_env_var",
+    "label": "Missing environment variable",
+    "symptom": "Envcheck reports missing or malformed bindings and commands behave unpredictably.",
+    "evidence": [
+      "/envcheck flags required values as absent",
+      "Worker logs print warnings about empty BOT_ENV or DISCORD_PUBLIC_KEY",
+      "Changes to BOT_VERSION alter command text unexpectedly"
+    ]
+  },
+  {
+    "id": "wrong_interaction_url",
+    "label": "Wrong interaction URL",
+    "symptom": "Discord reports 404/503 on interactions even though the worker is deployed.",
+    "evidence": [
+      "Discord developer dashboard shows endpoint errors or \"Failed to reach your application\"",
+      "Latency checks never reach the worker but DNS and certificates look healthy",
+      "New deployments include a different route or domain than the one registered"
+    ]
+  },
+  {
+    "id": "wrong_public_key",
+    "label": "Wrong public key",
+    "symptom": "Signature verification fails even though the request reaches the worker.",
+    "evidence": [
+      "Worker logs show \"Missing Discord public key\" or signature validation errors",
+      "Requests drop into the invalid-signature branch before returning any command output",
+      "The registered public key differs from the portal value after a recent key rotation"
+    ]
+  },
+  {
+    "id": "dependency_runtime_mismatch",
+    "label": "Dependency/runtime mismatch",
+    "symptom": "The worker deploys but commands throw stack traces about unsupported modules or syntax.",
+    "evidence": [
+      "Cloudflare worker logs mention unexpected exports or missing dependencies",
+      "Local builds succeed, but deployed /health errors out with runtime issues",
+      "Package lock or bundler targets a Node API that Workers does not support"
+    ]
+  },
+  {
+    "id": "stale_deployment",
+    "label": "Stale deployment",
+    "symptom": "Recent deployments leave the worker tied to an older commit or disabled route, so commands time out.",
+    "evidence": [
+      "Cloudflare dashboard shows the latest publish as failed or disabled",
+      "Discord reports timeouts even though the worker shows no new logs",
+      "Deployments land on an old version, and /health returns outdated content"
+    ]
+  },
+  {
+    "id": "webhook_endpoint_error",
+    "label": "Webhook endpoint error",
+    "symptom": "Discord hits the interaction endpoint but returns webhook-style HTTP 500/502 errors (before the worker responds).",
+    "evidence": [
+      "Discord reports a webhook failure with a generic HTTP 500/502/503 payload",
+      "Cloudflare shows HTTP gateway or worker error before the application logic executes",
+      "New dependencies or cron jobs introduced errors when loading the worker bundle"
+    ]
+  },
+  {
+    "id": "role_channel_permission_denial",
+    "label": "Role/channel permission denial",
+    "symptom": "Commands fail in specific channels even though the bot role claims to have permissions.",
+    "evidence": [
+      "The /permissions command lists the required flags, but channel overrides still block messages",
+      "Guild logs mention \"Missing Permissions\" only in channels with overrides",
+      "General permissions look good, yet interactions time out when scoped to one channel"
+    ]
+  },
+  {
+    "id": "slow_handler_deferred",
+    "label": "Slow handler requiring defer",
+    "symptom": "A deferred diagnostic path is required because response logic takes longer than 3 seconds.",
+    "evidence": [
+      "Worker traces show interactions that take >3 seconds to complete",
+      "Discord logs mention \"Interaction failed\" because the initial response wasn't sent",
+      "The team is trying to simulate long-running dependency checks for reproducing customer behavior"
+    ]
+  }
+]
+</file>
+
+<file path="packages/commands/src/index.ts">
+import { RULE_CASES } from '@botmedic/rules';
+
+export interface CommandDefinition {
+  name: string;
+  icon: string;
+  description: string;
+}
+
+export const commands: CommandDefinition[] = [
+  {
+    name: 'health',
+    icon: '🩺',
+    description: 'Confirm the worker is alive, shows version/environment, and logs a timestamped check.'
+  },
+  {
+    name: 'envcheck',
+    icon: '🧭',
+    description: 'Validate required bindings (Discord key, version, env) and surface malformed values.'
+  },
+  {
+    name: 'permissions',
+    icon: '🛠️',
+    description: 'Inspect the bot/application permissions that arrived with the slash command.'
+  },
+  {
+    name: 'latency',
+    icon: '⚡',
+    description: 'Compare Discord timestamp headers to now and report around-trip latency and warnings.'
+  },
+  {
+    name: 'helpme',
+    icon: '🤖',
+    description: 'Present a symptom grid, then surface internal diagnostics + customer-friendly messaging.'
+  },
+  {
+    name: 'incident',
+    icon: '🧪',
+    description: 'Replay a seeded failure scenario, including the deferred-response path for slow handlers.'
+  }
+];
+
+export const COMMAND_NAMES = commands.map((command) => command.name) as const;
+export type CommandName = (typeof COMMAND_NAMES)[number];
+
+const incidentScenarioChoices = RULE_CASES.map((rule) => ({
+  name: rule.buttonLabel,
+  value: rule.id
+}));
+
+export const DISCORD_COMMANDS = [
+  {
+    name: 'health',
+    type: 1,
+    description: 'Confirm BotMedic is responsive',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'envcheck',
+    type: 1,
+    description: 'Verify required BotMedic environment variables',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'permissions',
+    type: 1,
+    description: 'Check the bot role/channel permissions locally',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'latency',
+    type: 1,
+    description: 'Measure the round-trip latency for this interaction',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'helpme',
+    type: 1,
+    description: 'Give me troubleshooting hints with BotMedic',
+    dm_permission: false,
+    default_member_permissions: null
+  },
+  {
+    name: 'incident',
+    type: 1,
+    description: 'Replay a seeded incident scenario',
+    dm_permission: false,
+    default_member_permissions: null,
+    options: [
+      {
+        name: 'scenario',
+        description: 'Choose which incident to replay',
+        type: 3,
+        required: false,
+        choices: incidentScenarioChoices
+      }
+    ]
+  }
+];
+</file>
+
+<file path="packages/commands/package.json">
+{
+  "name": "@botmedic/commands",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@botmedic/rules": "file:../rules"
+  }
+}
+</file>
+
+<file path="packages/commands/tsconfig.json">
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "ESNext",
+    "target": "ES2020"
+  },
+  "include": ["src"]
+}
+</file>
+
+<file path="packages/playbooks/README.md">
+# packages/playbooks
+
+Playbooks and runbook templates will guide troubleshooting output and customer messaging. Later phases will add structured markdown/json for dispatched follow-ups.
+</file>
+
+<file path="packages/rules/src/index.ts">
+export type SymptomId =
+  | 'invalid_token'
+  | 'missing_bot_permission'
+  | 'missing_env_var'
+  | 'wrong_interaction_url'
+  | 'wrong_public_key'
+  | 'dependency_runtime_mismatch'
+  | 'stale_deployment'
+  | 'webhook_endpoint_error'
+  | 'role_channel_permission_denial'
+  | 'slow_handler_deferred';
+
+export interface RuleCase {
+  id: SymptomId;
+  customId: string;
+  buttonLabel: string;
+  buttonEmoji: string;
+  buttonStyle: 1 | 2 | 3 | 4 | 5;
+  symptom: string;
+  evidence: string[];
+  diagnosis: string;
+  likelyCause: string;
+  confidenceScore: number;
+  firstChecks: string[];
+  safeNextStep: string;
+  escalationThreshold: string;
+  customerSafeExplanation: string;
+  safeRecoverySteps: string[];
+  dontDoThisFirst: string;
+  requiresDeferredResponse?: boolean;
+}
+
+const buildCustomId = (id: SymptomId) => `helpme_symptom_${id}`;
+
+export const RULE_CASES: RuleCase[] = [
+  {
+    id: 'invalid_token',
+    customId: buildCustomId('invalid_token'),
+    buttonLabel: 'Invalid/rotated bot token',
+    buttonEmoji: '🔐',
+    buttonStyle: 1,
+    symptom: 'Slash commands return 401s or disappear before reaching the worker whenever Discord hits the endpoint.',
+    evidence: [
+      'Discord logs list "401 Unauthorized" before the HTTP body ever arrives',
+      'Worker traces show zero requests even though Discord reports interaction attempts',
+      'A fresh deployment or role change coincided with the bot token being rotated'
+    ],
+    diagnosis: 'Discord rejects the bot token, so interactions never hit the worker despite Cloudflare being available.',
+    likelyCause: 'DISCORD_BOT_TOKEN in Cloudflare is empty, expired, or mismatched with the Discord application.',
+    confidenceScore: 90,
+    firstChecks: [
+      'Copy the bot token from the Discord developer portal and paste it into Cloudflare secrets verbatim',
+      'Trigger a redeploy so the worker picks up the rotated token before testing /health again'
+    ],
+    safeNextStep: 'Rotate or restore the bot token, redeploy, then run /health in a staging guild.',
+    escalationThreshold: 'Escalate if Discord still rejects commands with 401s after two redeploys with the verified token.',
+    customerSafeExplanation:
+      'BotMedic cannot authenticate with Discord until the bot credentials are restored; we are refreshing them now.',
+    safeRecoverySteps: [
+      'Validate the bot token listed in the Discord portal and paste it into Cloudflare secrets.',
+      'Redeploy the worker so the new token is active, then run diagnostics to confirm interaction replies succeed.'
+    ],
+    dontDoThisFirst: 'Do not change DNS routes or permissions before confirming the token value is correct.'
+  },
+  {
+    id: 'missing_bot_permission',
+    customId: buildCustomId('missing_bot_permission'),
+    buttonLabel: 'Missing bot permission',
+    buttonEmoji: '⚠️',
+    buttonStyle: 3,
+    symptom: 'Slash commands or responses get dropped/rejected with warnings about missing permissions.',
+    evidence: [
+      'The /permissions command reports missing flags such as Send Messages or Use Application Commands',
+      'Discord logs mention "Missing Permissions" when the bot tries to send an interaction reply',
+      'The bot role lacks the same permission bits the docs require'
+    ],
+    diagnosis: 'Discord refuses to run commands because the bot role does not have the required high-level permissions.',
+    likelyCause: 'Core permission bits (view/send/embed/use application commands) are absent on the bot role.',
+    confidenceScore: 82,
+    firstChecks: [
+      'Run /permissions and capture the list of missing flags',
+      "Compare the bot role's permission bits to the documented checklist and update as needed"
+    ],
+    safeNextStep: 'Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands.',
+    escalationThreshold: 'Escalate if permission edits still yield missing flags after two rounds of updates.',
+    customerSafeExplanation:
+      'BotMedic is blocked from sending diagnostic replies because it lacks required Discord permissions.',
+    safeRecoverySteps: [
+      'Update the bot role so it has View Channels, Send Messages, Embed Links, Read History, and Use Application Commands.',
+      'Confirm channel overrides do not revoke these permissions, then re-run /permissions.'
+    ],
+    dontDoThisFirst: 'Do not redeploy the worker or touch DNS before verifying the permission bits.'
+  },
+  {
+    id: 'missing_env_var',
+    customId: buildCustomId('missing_env_var'),
+    buttonLabel: 'Missing environment variable',
+    buttonEmoji: '🧪',
+    buttonStyle: 2,
+    symptom: 'Envcheck reports missing or malformed bindings and commands behave unpredictably.',
+    evidence: [
+      '/envcheck flags required values as absent',
+      'Worker logs print warnings about empty BOT_ENV or DISCORD_PUBLIC_KEY',
+      'Changes to BOT_VERSION alter command text unexpectedly'
+    ],
+    diagnosis: 'One or more critical environment variables are not set or malformed, so the worker runs with incomplete configuration.',
+    likelyCause: 'Secrets were not inserted into the Cloudflare deployment or were mistyped during the last deploy.',
+    confidenceScore: 78,
+    firstChecks: [
+      'Run /envcheck; ensure the required keys are present and formatted correctly',
+      'Compare the Cloudflare secret values to an .env.local copy or deployment manifest'
+    ],
+    safeNextStep: 'Add the missing variables with valid values and redeploy the worker.',
+    escalationThreshold: 'Escalate if required bindings remain missing after deployments to both staging and production.',
+    customerSafeExplanation:
+      'BotMedic is missing configuration values, so we need to restore those secrets before it can respond reliably.',
+    safeRecoverySteps: [
+      'Set DISCORD_PUBLIC_KEY, BOT_VERSION, and BOT_ENV to valid strings in KV or secrets.',
+      'Rerun /envcheck until it reports "Required variables look good."'
+    ],
+    dontDoThisFirst: 'Avoid deleting other secrets before recording their current values so they can be restored if needed.'
+  },
+  {
+    id: 'wrong_interaction_url',
+    customId: buildCustomId('wrong_interaction_url'),
+    buttonLabel: 'Wrong interaction URL',
+    buttonEmoji: '🌐',
+    buttonStyle: 4,
+    symptom: 'Discord reports 404/503 on interactions even though the worker is deployed.',
+    evidence: [
+      'Discord developer dashboard shows endpoint errors or "Failed to reach your application"',
+      'Latency checks never reach the worker but DNS and certificates look healthy',
+      'New deployments include a different route or domain than the one registered'
+    ],
+    diagnosis: 'Discord is hitting an outdated or missing interaction URL, so requests never arrive at the current worker.',
+    likelyCause: 'The registered interaction endpoint points to an old subdomain, path, or disabled worker route.',
+    confidenceScore: 74,
+    firstChecks: [
+      'Confirm the interaction URL in Discord matches the latest published Cloudflare worker domain and path',
+      'Check Cloudflare Workers routes and DNS records to ensure they are active'
+    ],
+    safeNextStep: 'Update the interaction URL to the correct worker and run /health to verify responses.',
+    escalationThreshold: 'Escalate if the endpoint remains unreachable for more than 10 minutes after updates.',
+    customerSafeExplanation:
+      'Discord cannot find the address for BotMedic, so commands are dropped before they reach us.',
+    safeRecoverySteps: [
+      "Copy the current worker URL and paste it into the Discord application's interaction endpoint.",
+      'Ensure any CDN or DNS changes have fully propagated before retesting.'
+    ],
+    dontDoThisFirst: 'Do not rotate keys or secrets before verifying that the endpoint itself is correct.'
+  },
+  {
+    id: 'wrong_public_key',
+    customId: buildCustomId('wrong_public_key'),
+    buttonLabel: 'Wrong public key',
+    buttonEmoji: '🧵',
+    buttonStyle: 1,
+    symptom: 'Signature verification fails even though the request reaches the worker.',
+    evidence: [
+      'Worker logs show "Missing Discord public key" or signature validation errors',
+      'Requests drop into the invalid-signature branch before returning any command output',
+      'The registered public key differs from the portal value after a recent key rotation'
+    ],
+    diagnosis: 'Discord signs requests with the most recent public key, but the worker still uses the old or missing value.',
+    likelyCause: 'DISCORD_PUBLIC_KEY in the worker configuration is stale, empty, or miscopied.',
+    confidenceScore: 86,
+    firstChecks: [
+      'Copy the public key from the Discord developer portal and verify the 64-character hex string matches Cloudflare',
+      'Restart or redeploy the worker so the new key is picked up before rerunning commands'
+    ],
+    safeNextStep: 'Paste the correct public key into secrets and re-run /health to confirm verification succeeds.',
+    escalationThreshold: 'Escalate if signature failures persist across builds after updating the public key.',
+    customerSafeExplanation:
+      'BotMedic is reachable, but Discord rejects the signed payloads because the public key is misconfigured.',
+    safeRecoverySteps: [
+      'Update DISCORD_PUBLIC_KEY with the portal value and rerun /envcheck to confirm it passes validation.',
+      'Redeploy the worker and then invoke /health to ensure the verification step no longer fails.'
+    ],
+    dontDoThisFirst: 'Do not rotate the bot token before confirming the public key matches the portal.'
+  },
+  {
+    id: 'dependency_runtime_mismatch',
+    customId: buildCustomId('dependency_runtime_mismatch'),
+    buttonLabel: 'Dependency/runtime mismatch',
+    buttonEmoji: '🧰',
+    buttonStyle: 2,
+    symptom: 'The worker deploys but commands throw stack traces about unsupported modules or syntax.',
+    evidence: [
+      'Cloudflare worker logs mention unexpected exports or missing dependencies',
+      'Local builds succeed, but deployed /health errors out with runtime issues',
+      'Package lock or bundler targets a Node API that Workers does not support'
+    ],
+    diagnosis: 'A dependency or platform API the worker relies on is unavailable in the deployed Cloudflare runtime.',
+    likelyCause: 'The build output targets a higher Node version or includes modules that the Workers environment forbids.',
+    confidenceScore: 66,
+    firstChecks: [
+      'Inspect the bundle or stack trace for Web API/polyfill stderr',
+      'Compare dependency versions between local builds and the deployed lockfile'
+    ],
+    safeNextStep: 'Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy.',
+    escalationThreshold: 'Escalate if runtime mismatches continue after locking the build target.',
+    customerSafeExplanation:
+      'BotMedic encountered a runtime incompatibility; we are adjusting the build so it can run in Cloudflare Workers.',
+    safeRecoverySteps: [
+      'Transpile the worker to ES2020 and remove unsupported Node-specific APIs.',
+      'Lock dependency versions (including @noble/ed25519) and rebuild before redeploying.'
+    ],
+    dontDoThisFirst: 'Do not immediately rollback; first confirm the bundle is targeting the supported worker runtime.'
+  },
+  {
+    id: 'stale_deployment',
+    customId: buildCustomId('stale_deployment'),
+    buttonLabel: 'Stale deployment',
+    buttonEmoji: '⚙️',
+    buttonStyle: 4,
+    symptom: 'Recent deployments leave the worker tied to an older commit or disabled route, so commands time out.',
+    evidence: [
+      'Cloudflare dashboard shows the latest publish as failed or disabled',
+      'Discord reports timeouts even though the worker shows no new logs',
+      'Deployments land on an old version, and /health returns outdated content'
+    ],
+    diagnosis: 'Discord is hitting an inactive or stale worker deployment, so commands never hit the current logic.',
+    likelyCause: 'The worker route is disabled or the DNS still points to an older release after a deploy.',
+    confidenceScore: 75,
+    firstChecks: [
+      'Check Cloudflare Worker deployments, ensuring the active version has the latest code',
+      'Confirm DNS or custom domain routes are enabled and point to the right worker'
+    ],
+    safeNextStep: 'Re-deploy or re-enable the worker route, then test /health within the same guild.',
+    escalationThreshold: 'Escalate if multiple deployments keep routing to stale builds and commands stay unresponsive.',
+    customerSafeExplanation:
+      "BotMedic is temporarily offline because the current deployment isn't wired up; we are promoting the latest build.",
+    safeRecoverySteps: [
+      'Re-deploy the worker and verify the route is enabled for the Discord domain.',
+      'Confirm the published timestamp aligns with the latest release notes before testing.'
+    ],
+    dontDoThisFirst: 'Do not delete dashboards or KV entries before ensuring the worker release is live.'
+  },
+  {
+    id: 'webhook_endpoint_error',
+    customId: buildCustomId('webhook_endpoint_error'),
+    buttonLabel: 'Webhook endpoint error',
+    buttonEmoji: '🚨',
+    buttonStyle: 5,
+    symptom: 'Discord hits the interaction endpoint but returns webhook-style HTTP 500/502 errors (before the worker responds).',
+    evidence: [
+      'Discord reports a webhook failure with a generic HTTP 500/502/503 payload',
+      'Cloudflare shows HTTP gateway or worker error before the application logic executes',
+      'New dependencies or cron jobs introduced errors when loading the worker bundle'
+    ],
+    diagnosis: 'The worker code crashes at startup or during request parsing, so Discord sees a webhook failure before flow reaches commands.',
+    likelyCause: 'Unhandled runtime errors—extra dependencies, misconfigured bindings, or bundler output—cause the worker to crash.',
+    confidenceScore: 71,
+    firstChecks: [
+      'Review Cloudflare worker logs for unhandled exceptions or module resolution errors',
+      'Confirm every dependency referenced by the worker is included in package-lock and is published'
+    ],
+    safeNextStep: 'Fix the startup exception (missing dependency or config) and redeploy; then test /health.',
+    escalationThreshold: 'Escalate if webhook failures persist after fixing the reported crash points.',
+    customerSafeExplanation:
+      'BotMedic cannot process interactions right now because the worker code is crashing; we are addressing the issue.',
+    safeRecoverySteps: [
+      'Align go live dependencies and re-run builds to ensure Cloudflare Workers can instantiate the module.',
+      'Deploy the patched build and monitor logs for clean startup before triggering /health.'
+    ],
+    dontDoThisFirst: "Do not rotate keys or adjust DNS before you've resolved the runtime crash."
+  },
+  {
+    id: 'role_channel_permission_denial',
+    customId: buildCustomId('role_channel_permission_denial'),
+    buttonLabel: 'Role/channel permission denial',
+    buttonEmoji: '🚫',
+    buttonStyle: 3,
+    symptom: 'Commands fail in specific channels even though the bot role claims to have permissions.',
+    evidence: [
+      'The /permissions command lists the required flags, but channel overrides still block messages',
+      'Guild logs mention "Missing Permissions" only in channels with overrides',
+      'General permissions look good, yet interactions time out when scoped to one channel'
+    ],
+    diagnosis: 'Channel overrides or role hierarchies deny permissions, preventing BotMedic from responding even when global flags are set.',
+    likelyCause: 'A channel override or higher-priority role removes View/Send permissions after the interaction starts.',
+    confidenceScore: 68,
+    firstChecks: [
+      'Inspect channel overrides where diagnostics fail and ensure the bot role can still send messages',
+      'Check if any higher-priority roles revoke embeds or application command usage'
+    ],
+    safeNextStep: 'Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels.',
+    escalationThreshold: 'Escalate if overrides continue to deny permissions after manual fixes.',
+    customerSafeExplanation:
+      'BotMedic needs an extra permission tweak because channel-level restrictions are preventing replies.',
+    safeRecoverySteps: [
+      'Grant the bot role View/Send/Embed permissions again in the channel overrides.',
+      'Re-run /permissions in that channel to confirm the overrides no longer block the bot.'
+    ],
+    dontDoThisFirst: 'Do not delete the bot role or its parent roles before adjusting overrides.'
+  },
+  {
+    id: 'slow_handler_deferred',
+    customId: buildCustomId('slow_handler_deferred'),
+    buttonLabel: 'Slow handler requiring defer',
+    buttonEmoji: '🐢',
+    buttonStyle: 2,
+    symptom: 'A deferred diagnostic path is required because response logic takes longer than 3 seconds.',
+    evidence: [
+      'Worker traces show interactions that take >3 seconds to complete',
+      'Discord logs mention "Interaction failed" because the initial response wasn\'t sent',
+      'The team is trying to simulate long-running dependency checks for reproducing customer behavior'
+    ],
+    diagnosis: 'The interaction handler takes longer than 3 seconds, so Discord invalidates the single-use token unless a deferred ack is sent.',
+    likelyCause: 'Long-running checks (e.g., telemetry queries or dependency tests) are wrapped in the slash command path.',
+    confidenceScore: 59,
+    firstChecks: [
+      'Identify the slow-running dependencies and isolate them outside of the immediate interaction handler',
+      'Ensure every long-running path sends a deferred response with type 5 before executing heavy work'
+    ],
+    safeNextStep: 'Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message.',
+    escalationThreshold: 'Escalate if Discord rejects tokens even after acknowledging the interaction within 3 seconds.',
+    customerSafeExplanation:
+      'We have a slow diagnostic path, so we are deferring the response until the work completes to keep Discord happy.',
+    safeRecoverySteps: [
+      'Acknowledge the interaction within 3 seconds by returning a deferred response.',
+      'Run the slow checks after the defer and send the final message via a follow-up webhook.'
+    ],
+    dontDoThisFirst: 'Do not wait longer than 3 seconds before returning a deferred response.',
+    requiresDeferredResponse: true
+  }
+];
+
+export function getRuleCase(customId?: string): RuleCase | undefined {
+  if (!customId) {
+    return undefined;
+  }
+  return RULE_CASES.find((rule) => rule.customId === customId);
+}
+
+export function getRuleCaseById(id: SymptomId): RuleCase | undefined {
+  return RULE_CASES.find((rule) => rule.id === id);
+}
+
+export interface SupportResponseSections {
+  internal: string[];
+  customer: string[];
+}
+
+export function buildSupportResponseSections(rule: RuleCase): SupportResponseSections {
+  const internal: string[] = [
+    'Internal diagnosis:',
+    `• Diagnosis: ${rule.diagnosis}`,
+    `• Probable root cause: ${rule.likelyCause}`,
+    `• Exact checks performed: ${rule.firstChecks.join(' · ')}`,
+    `• Confidence level: ${rule.confidenceScore}%`,
+    `• Technical next step: ${rule.safeNextStep}`,
+    `• When to escalate: ${rule.escalationThreshold}`
+  ];
+
+  const customer: string[] = [
+    'Customer-facing explanation:',
+    `• What happened: ${rule.customerSafeExplanation} We're keeping a close eye on it so nothing catches you off guard.`,
+    `• What to try next: ${rule.safeNextStep}`,
+    `• When to contact support again: ${rule.escalationThreshold} Expect us to monitor the follow-up window before escalating.`
+  ];
+
+  return { internal, customer };
+}
+</file>
+
+<file path="packages/rules/package.json">
+{
+  "name": "@botmedic/rules",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts"
+}
+</file>
+
+<file path="packages/rules/README.md">
+# packages/rules
+
+Shared rule engine logic will live here (phase 2+). For now, this directory declares intent to host validation flows, scoring heuristics, and configuration that powers `/envcheck` and other diagnostic commands.
+</file>
+
+<file path="packages/rules/tsconfig.json">
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "ESNext",
+    "target": "ES2020"
+  },
+  "include": ["src"]
+}
+</file>
+
+<file path="scripts/generate-site-data.mts">
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { commands } from '@botmedic/commands';
+import { RULE_CASES } from '@botmedic/rules';
+
+const outputPath = resolve('site/js/data.js');
+const content = `/**
+ * AUTO-GENERATED. Do not edit directly.
+ * Run "npm run generate-site-data" after updating rules or commands.
+ */
+
+export const commands = ${JSON.stringify(commands, null, 2)};
+
+export const ruleCases = ${JSON.stringify(RULE_CASES, null, 2)};
+`;
+
+writeFileSync(outputPath, content, { encoding: 'utf-8' });
+console.log(`Updated ${outputPath}`);
+</file>
+
+<file path="site/assets/hero-illustration.svg">
+<svg width="280" height="220" viewBox="0 0 280 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="280" height="220" rx="32" fill="#0A0F1A" />
+  <path d="M40 60H240" stroke="#5CE1E6" stroke-width="2" stroke-linecap="round" />
+  <circle cx="60" cy="120" r="28" stroke="#5CE1E6" stroke-width="2" />
+  <circle cx="140" cy="140" r="18" stroke="#5CE1E6" stroke-width="2" />
+  <circle cx="200" cy="90" r="22" stroke="#5CE1E6" stroke-width="2" />
+  <rect x="50" y="150" width="180" height="30" rx="10" fill="#1A2636" stroke="#5CE1E6" stroke-width="2" />
+  <text x="70" y="170" fill="#5CE1E6" font-size="12">Companion surface</text>
+</svg>
+</file>
+
+<file path="site/css/site.css">
+:root {
+  color-scheme: dark;
+  --bg: #010b14;
+  --bg-alt: #03152a;
+  --panel: rgba(10, 22, 38, 0.9);
+  --panel-strong: rgba(6, 14, 28, 0.95);
+  --panel-soft: rgba(11, 24, 46, 0.85);
+  --text: #f5f7ff;
+  --muted: rgba(255, 255, 255, 0.68);
+  --muted-strong: rgba(255, 255, 255, 0.82);
+  --accent: #5ce1e6;
+  --accent-strong: #a9fff6;
+  --accent-soft: rgba(92, 225, 230, 0.25);
+  --danger: #ff7a6b;
+  --gradient: radial-gradient(circle at 15% -10%, rgba(92, 225, 230, 0.25), transparent 40%),
+    linear-gradient(130deg, #021025 0%, #031b36 45%, #020a16 100%);
+  --hero-gradient: linear-gradient(150deg, rgba(89, 235, 238, 0.15), rgba(4, 20, 36, 0.75));
+  font-family: 'Inter', 'Space Grotesk', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--gradient);
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 10%, rgba(92, 225, 230, 0.3), transparent 50%),
+    radial-gradient(circle at 80% 0%, rgba(92, 225, 230, 0.2), transparent 35%);
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(25px);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-strong);
+}
+
+main {
+  padding: 2rem clamp(1.25rem, 3vw, 3.5rem) 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+header.site-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2.5rem;
+  padding: clamp(2rem, 3vw, 3rem);
+  padding-bottom: clamp(2rem, 4vw, 4rem);
+  align-items: center;
+  background: var(--panel);
+  border-radius: 32px;
+  border: 1px solid rgba(92, 225, 230, 0.25);
+  box-shadow: 0 35px 80px rgba(2, 8, 23, 0.7);
+  position: relative;
+  overflow: hidden;
+}
+
+header.site-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--hero-gradient);
+  mix-blend-mode: screen;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+header.site-hero div {
+  position: relative;
+  z-index: 1;
+}
+
+header.site-hero h1 {
+  font-size: clamp(2.6rem, 5vw, 4rem);
+  margin: 0 0 0.75rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+header.site-hero p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.hero-cta .cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  border: 1px solid rgba(92, 225, 230, 0.6);
+  background: linear-gradient(135deg, rgba(5, 86, 110, 0.4), rgba(92, 225, 230, 0.15));
+  box-shadow: 0 10px 25px rgba(5, 32, 58, 0.55);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.hero-cta .cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(2, 8, 23, 0.65);
+  background: linear-gradient(135deg, rgba(92, 225, 230, 0.35), rgba(72, 213, 223, 0.45));
+}
+
+section {
+  margin-top: 0;
+}
+
+section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.95rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  position: relative;
+}
+
+section h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.35rem;
+  width: 60px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, rgba(92, 225, 230, 0.8), rgba(92, 225, 230, 0));
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--panel-soft);
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid rgba(92, 225, 230, 0.12);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, border 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, rgba(92, 225, 230, 0.1), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(92, 225, 230, 0.5);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.65);
+}
+
+.card:hover::after {
+  opacity: 1;
+}
+
+.card small,
+.card p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.card h3,
+.card h2,
+.card strong {
+  color: var(--muted-strong);
+  margin: 0;
+}
+
+.card .pill {
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  align-self: flex-start;
+  background: rgba(92, 225, 230, 0.12);
+  color: var(--accent-strong);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.arch-diagram {
+  background: rgba(7, 17, 34, 0.9);
+  border-radius: 24px;
+  padding: 2rem;
+  border: 1px solid rgba(92, 225, 230, 0.25);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.arch-diagram > p {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+
+.arch-cell {
+  background: rgba(5, 13, 26, 0.8);
+  border-radius: 16px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--muted-strong);
+}
+
+.arch-cell strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text);
+}
+
+.arch-connectors {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.arch-connectors svg {
+  width: 100%;
+  max-width: 320px;
+  height: 60px;
+  opacity: 0.9;
+}
+
+.walkthroughs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.walkthrough-card {
+  position: relative;
+  padding: 1.25rem;
+  border-radius: 22px;
+  border: 1px solid rgba(92, 225, 230, 0.2);
+  background: linear-gradient(160deg, rgba(0, 0, 0, 0.45), rgba(6, 20, 35, 0.95));
+  box-shadow: inset 0 0 0 1px rgba(92, 225, 230, 0.08), 0 20px 40px rgba(0, 0, 0, 0.55);
+  min-height: 220px;
+  overflow: hidden;
+}
+
+.walkthrough-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  border: 1px dashed rgba(92, 225, 230, 0.2);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.walkthrough-anim {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.walkthrough-card h3 {
+  margin: 0;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.walkthrough-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.pulse {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(92, 225, 230, 0.2);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.pulse.delay-1 {
+  animation-delay: 0.4s;
+}
+
+.pulse.delay-2 {
+  animation-delay: 0.8s;
+}
+
+@keyframes pulse {
+  0% {
+    width: 60%;
+    opacity: 0.1;
+  }
+  50% {
+    width: 100%;
+    opacity: 0.5;
+  }
+  100% {
+    width: 40%;
+    opacity: 0.2;
+  }
+}
+
+.quick-reference-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quick-reference-table th,
+.quick-reference-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.quick-reference-table th {
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.quick-reference-table tbody tr:hover {
+  background: rgba(92, 225, 230, 0.05);
+}
+
+.runbook-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.runbook-columns .column {
+  background: rgba(7, 15, 26, 0.9);
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid rgba(92, 225, 230, 0.18);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.warning-banner {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 122, 107, 0.15);
+  border: 1px solid rgba(255, 122, 107, 0.45);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+footer.site-footer {
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+nav.page-nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+nav.page-nav a {
+  font-size: 0.9rem;
+}
+
+.runbook-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.25rem;
+}
+
+.runbook-card {
+  border-radius: 18px;
+  padding: 1.2rem;
+  border: 1px solid rgba(92, 225, 230, 0.15);
+  background: rgba(6, 17, 34, 0.85);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.45);
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.runbook-card strong {
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.runbook-card p,
+.runbook-card small {
+  color: var(--muted);
+}
+
+.runbook-card a {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  header.site-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-cta {
+    justify-content: center;
+  }
+
+  main {
+    padding-top: 1.75rem;
+  }
+}
+</file>
+
+<file path="site/js/site.js">
+import { commands, ruleCases } from './data.js';
+
+const runbookMap = new Map(ruleCases.map((rule) => [rule.id, rule]));
+
+const getRuleTitle = (rule) => rule.buttonLabel ?? rule.label ?? rule.id;
+const getRuleConfidence = (rule) =>
+  typeof rule.confidenceScore === 'number' ? rule.confidenceScore : rule.confidence ?? 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const page = document.body.dataset.page;
+  if (!page) return;
+
+  switch (page) {
+    case 'home':
+      renderHome();
+      break;
+    case 'runbook-list':
+      renderRunbookLibrary();
+      break;
+    case 'runbook-detail':
+      renderRunbookDetail();
+      break;
+    case 'diagnosis':
+      renderDiagnosisPage();
+      break;
+    case 'quick-reference':
+      renderQuickReference();
+      break;
+    default:
+      break;
+  }
+});
+
+function renderHome() {
+  populateCards('[data-command-gallery]', commands, createCommandCard);
+  populateCards('[data-failure-gallery]', ruleCases, createFailureCard);
+  populateCards('[data-runbook-teaser]', ruleCases, createRunbookTeaser);
+  renderQuickReferenceSummary();
+}
+
+function renderRunbookLibrary() {
+  populateCards('[data-runbook-list]', ruleCases, createRunbookCard);
+}
+
+function renderRunbookDetail() {
+  const container = document.querySelector('[data-runbook-detail]');
+  const runbookId = document.body.dataset.runbook;
+  if (!container || !runbookId) return;
+  const runbook = runbookMap.get(runbookId);
+  if (!runbook) {
+    container.textContent = 'Runbook not found';
+    return;
+  }
+  const nameEl = document.querySelector('[data-runbook-name]');
+  const labelEl = document.querySelector('[data-runbook-label]');
+  const symptomEl = document.querySelector('[data-runbook-symptom]');
+  const confidenceEl = document.querySelector('[data-runbook-confidence]');
+  if (nameEl) {
+    nameEl.textContent = getRuleTitle(runbook);
+  }
+  if (labelEl) {
+    labelEl.textContent = runbook.id;
+  }
+  if (symptomEl) {
+    symptomEl.textContent = runbook.symptom;
+  }
+  if (confidenceEl) {
+    confidenceEl.textContent = `Confidence ${getRuleConfidence(runbook)}%`;
+  }
+
+  const breakdown = runbook.safeRecoverySteps.map((step) => `<li>${step}</li>`).join('');
+  const checks = runbook.firstChecks.map((check) => `<li>${check}</li>`).join('');
+
+  container.innerHTML = `
+    <section class="runbook-columns">
+      <article class="column">
+        <h3>Polished explanation</h3>
+        <p>${runbook.customerSafeExplanation}</p>
+        <h4>Customer-safe response</h4>
+        <p>${runbook.safeNextStep}</p>
+        <h4>Safe recovery steps</h4>
+        <ul>${breakdown}</ul>
+      </article>
+      <article class="column">
+        <h3>Support logic</h3>
+        <p><strong>Diagnosis:</strong> ${runbook.diagnosis}</p>
+        <p><strong>Likely cause:</strong> ${runbook.likelyCause}</p>
+        <h4>Evidence &amp; checks</h4>
+        <ul>${runbook.evidence.map((line) => `<li>${line}</li>`).join('')}</ul>
+        <p><strong>Escalation threshold:</strong> ${runbook.escalationThreshold}</p>
+        <p class="warning-banner">Don’t do this first: ${runbook.dontDoThisFirst}</p>
+      </article>
+    </section>
+    <section>
+      <h3>First checks</h3>
+      <ul>${checks}</ul>
+    </section>
+  `;
+}
+
+function renderDiagnosisPage() {
+  const timeline = document.querySelector('[data-diagnosis-timeline]');
+  if (!timeline) return;
+  const sampleRule = ruleCases[0];
+  const timelineConfidence = getRuleConfidence(sampleRule);
+  timeline.innerHTML = `
+    <ol>
+      <li>
+        Symptom intake: “${sampleRule.symptom}” triggered the flow.
+      </li>
+      <li>
+        Rule scoring: evidence (${sampleRule.evidence.join(' · ')}) boosted confidence to ${timelineConfidence}%.
+      </li>
+      <li>
+        Support layers: publish internal diagnosis + customer messaging and write ephemeral traces for reproducibility.
+      </li>
+    </ol>
+  `;
+
+  const comparison = document.querySelector('[data-support-vs-human]');
+  if (comparison) {
+    comparison.innerHTML = `
+      <article class="column">
+        <h4>Support logic</h4>
+        <p>Diagnosis: ${sampleRule.diagnosis}</p>
+        <p>Likely cause: ${sampleRule.likelyCause}</p>
+        <p>First check: ${sampleRule.firstChecks[0]}</p>
+      </article>
+      <article class="column">
+        <h4>Human story</h4>
+        <p>${sampleRule.customerSafeExplanation}</p>
+        <p>Customer gets: ${sampleRule.safeNextStep}</p>
+      </article>
+    `;
+  }
+}
+
+function renderQuickReference() {
+  const tableBody = document.querySelector('[data-reference-table-body]');
+  if (!tableBody) return;
+  tableBody.innerHTML = ruleCases
+    .map(
+      (rule) => `
+        <tr>
+          <td><strong>${getRuleTitle(rule)}</strong><br><small>${rule.symptom}</small></td>
+          <td><strong>${rule.firstChecks[0]}</strong><br>${rule.firstChecks.slice(1).join('<br>')}</td>
+          <td>${rule.safeNextStep}</td>
+          <td><a href="runbooks/${rule.id}.html">Open runbook</a></td>
+        </tr>
+      `
+    )
+    .join('');
+}
+
+function renderQuickReferenceSummary() {
+  const container = document.querySelector('[data-reference-summary]');
+  if (!container) return;
+  const firstCheck = ruleCases[0]?.firstChecks[0] ?? 'Start with /envcheck';
+  container.innerHTML = `
+    <p>Priority checklist: <strong>${firstCheck}</strong></p>
+    <p>Tip: Always run <code>/envcheck</code> before exploring the runbook library to ensure the environment bindings are healthy.</p>
+  `;
+}
+
+function populateCards(selector, dataset, builder) {
+  const container = document.querySelector(selector);
+  if (!container) return;
+  container.innerHTML = dataset.map(builder).join('');
+}
+
+function createCommandCard(cmd) {
+  return `
+    <article class="card">
+      <span class="pill">${cmd.icon}</span>
+      <h3>/${cmd.name}</h3>
+      <small>${cmd.description}</small>
+    </article>
+  `;
+}
+
+function createFailureCard(rule) {
+  return `
+    <article class="card">
+      <span class="pill">Confidence ${getRuleConfidence(rule)}%</span>
+      <h3>${getRuleTitle(rule)}</h3>
+      <p>${rule.symptom}</p>
+      <small>${rule.evidence[0]}</small>
+      <a href="runbooks/${rule.id}.html">View runbook</a>
+    </article>
+  `;
+}
+
+function createRunbookTeaser(rule) {
+  return `
+    <article class="card">
+      <span class="pill">${rule.id}</span>
+      <h3>${getRuleTitle(rule)}</h3>
+      <p>${rule.safeNextStep}</p>
+      <a href="runbooks/${rule.id}.html">Open runbook</a>
+    </article>
+  `;
+}
+
+function createRunbookCard(rule) {
+  return `
+    <article class="runbook-card">
+      <small class="small-tag">Confidence ${getRuleConfidence(rule)}%</small>
+      <strong>${getRuleTitle(rule)}</strong>
+      <p>${rule.symptom}</p>
+      <p>Evidence: ${rule.evidence.slice(0, 2).join(' · ')}</p>
+      <p><a href="${rule.id}.html">View details</a></p>
+    </article>
+  `;
+}
+</file>
+
+<file path="site/quick-reference.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>What to check first · BotMedic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/site.css" />
+  </head>
+  <body data-page="quick-reference">
+    <nav class="page-nav">
+      <a href="index.html">Home</a>
+      <a href="runbooks/index.html">Runbook library</a>
+      <a href="diagnosis.html">Diagnosis explainer</a>
+    </nav>
+
+    <main>
+      <header>
+        <p>Quick triage</p>
+        <h1>What to check first</h1>
+        <p>Use this table to guide immediate remediation before diving into a full runbook.</p>
+      </header>
+
+      <section>
+        <table class="quick-reference-table">
+          <thead>
+            <tr>
+              <th>Failure</th>
+              <th>Priority first checks</th>
+              <th>Safe next step</th>
+              <th>Runbook link</th>
+            </tr>
+          </thead>
+          <tbody data-reference-table-body></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Guidance</h2>
+        <p>
+          Always begin with <code>/envcheck</code> to ensure the environment bindings are valid. Next, confirm the command
+          flows (permissions, latency, helpme) behave before escalating to a runbook read.
+        </p>
+        <p>
+          These steps reinforce the workflow documented in <code>docs/architecture/README.md</code> and the rule cases powering the worker.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      The companion site stays in sync with the worker rule cases so both the polished explanation and the raw logic show in tandem.
+    </footer>
+
+    <script type="module" src="js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="tests/README.md">
+# tests
+
+Workspace-level tests for cross-package scenarios. `apps/bot-worker/tests/` already contains Vitest suites for interaction validation.
+</file>
+
+<file path=".gitignore">
+node_modules/
+apps/bot-worker/node_modules/
+site/node_modules/
+packages/**/node_modules/
+tests/node_modules/
+.DS_Store
+.env*
+wrangler.toml
+</file>
+
+<file path="tsconfig.base.json">
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM"],
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["@cloudflare/workers-types"]
+  }
+}
+</file>
+
+<file path="apps/bot-worker/src/commands/incident.ts">
+import { InteractionResponse, InteractionResponseType } from '../types/discord';
+import { RULE_CASES, SymptomId, getRuleCaseById, RuleCase } from '@botmedic/rules';
+import { buildHelpmeSymptomResponse } from './helpme';
+
+const LIST_TITLE = 'Available incident scenarios:';
+
+function buildScenarioListResponse(): InteractionResponse {
+  const lines = [LIST_TITLE, ''];
+  for (const rule of RULE_CASES) {
+    lines.push(`• ${rule.id} — ${rule.buttonLabel}`);
+  }
+  lines.push('', 'Use `/incident <scenario>` to replay a specific case.');
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content: lines.join('\n'),
+      flags: 64
+    }
+  };
+}
+
+export function buildDeferredResponse(rule: RuleCase): InteractionResponse {
+  return {
+    type: InteractionResponseType.DeferredChannelMessageWithSource
+  };
+}
+
+export function buildIncidentResponse(scenarioId?: SymptomId): InteractionResponse {
+  if (!scenarioId) {
+    return buildScenarioListResponse();
+  }
+
+  const rule = getRuleCaseById(scenarioId);
+  if (!rule) {
+    return {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: `Unrecognized scenario "${scenarioId}". ${LIST_TITLE}`,
+        flags: 64
+      }
+    };
+  }
+
+  if (rule.requiresDeferredResponse) {
+    return buildDeferredResponse(rule);
+  }
+
+  return buildHelpmeSymptomResponse(rule.customId);
+}
+</file>
+
+<file path="apps/bot-worker/tests/incident-library.test.ts">
+import { describe, it, expect } from 'vitest';
+import symptoms from '../../fixtures/incidents/symptoms.json' assert { type: 'json' };
+import diagnosisSnapshots from '../../fixtures/incidents/diagnosis-snapshots.json' assert { type: 'json' };
+import customerSafe from '../../fixtures/incidents/customer-safe.json' assert { type: 'json' };
+import { RULE_CASES, buildSupportResponseSections } from '@botmedic/rules';
+
+describe('incident fixture library', () => {
+  it('mirrors the worker rule cases', () => {
+    expect(symptoms).toHaveLength(RULE_CASES.length);
+
+    for (const rule of RULE_CASES) {
+      const symptomEntry = symptoms.find((entry) => entry.id === rule.id);
+      expect(symptomEntry).toBeDefined();
+      expect(symptomEntry?.label).toBe(rule.buttonLabel);
+      expect(symptomEntry?.symptom).toBe(rule.symptom);
+      expect(symptomEntry?.evidence).toEqual(rule.evidence);
+
+      const snapshot = diagnosisSnapshots[rule.id];
+      expect(snapshot).toBeDefined();
+      const sections = buildSupportResponseSections(rule);
+      expect(snapshot?.internal).toEqual(sections.internal);
+      expect(snapshot?.customer).toEqual(sections.customer);
+
+      const customerEntry = customerSafe[rule.id];
+      expect(customerEntry).toBeDefined();
+      expect(customerEntry?.customerSafeExplanation).toBe(rule.customerSafeExplanation);
+      expect(customerEntry?.safeNextStep).toBe(rule.safeNextStep);
+    }
+  });
+});
+</file>
+
+<file path="apps/bot-worker/package.json">
+{
+  "name": "bot-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "wrangler build",
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish",
+    "register:commands": "ts-node scripts/register-commands.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@botmedic/commands": "file:../../packages/commands",
+    "@botmedic/rules": "file:../../packages/rules",
+    "@noble/ed25519": "^1.7.1",
+    "dotenv": "^10.0.0",
+    "undici": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "ts-node": "^10.9.1",
+    "vitest": "^0.34.5",
+    "wrangler": "^3.10.0"
+  }
+}
+</file>
+
+<file path="apps/bot-worker/README.md">
+# apps/bot-worker
+
+Cloudflare Worker serving Discord interactions. Phase 1 delivers signature validation, PING replies, and the `/health` command. Future phases add more commands, rules integration, and persistence.
+
+## Phase 1 checklist
+1. Fill `wrangler.toml` with your Cloudflare `name`, `account_id`, and update `compatibility_date` to the current date.
+2. Store required secrets via `wrangler secret put DISCORD_PUBLIC_KEY`, `BOT_VERSION`, `BOT_ENV`, and any other config.
+3. Run `npm --workspace apps/bot-worker run build` and `npm --workspace apps/bot-worker run deploy` (or `wrangler dev` for local testing).
+4. After deployment, register `/health` with Discord: set `DISCORD_APP_ID`, `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, configure the Interaction Endpoint URL to your worker, then run `npm --workspace apps/bot-worker run register:commands`.
+5. Confirm the Discord application is on a private test server and `/health` returns an ephemeral message including version, environment, and timestamp within 3 seconds.
+
+## Key files
+- `src/index.ts`: Worker entry point with request guard and dispatcher.
+- `src/commands/health.ts`: Builds ephemeral `/health` response with contextual templates.
+- `src/utils/discord.ts`: Signature verification helper and Discord interaction constants.
+- `src/types/discord.ts`: Minimal typings for interactions.
+- `scripts/register-commands.ts`: CLI that registers `/health` as a guild command using provided secrets.
+- `tests/interaction.test.ts`: Vitest suite ensuring signature validation, PING response, and `/health` payloads work without hitting Discord.
+
+## Phase 6 observability dashboard
+- Create a Workers KV namespace (suggested name `dashboard-metrics`) with `wrangler kv:namespace create dashboard-metrics --preview` and fill the `id`/`preview_id` for the `DASHBOARD_KV` binding in `wrangler.toml`.
+- The worker writes command usage counters, the last successful `/health`, and the latest diagnosed rule into `DASHBOARD_KV` whenever `/health` or `/helpme` interactions occur.
+- A lightweight HTML page is available at `GET /dashboard` and surfaces command counts, the most recent health/diagnosis entries, and the curated incident samples from `fixtures/incidents/dashboard-samples.json`.
+</file>
+
+<file path="docs/test-checklists/commands.md">
+# Command Test Checklist
+
+## /health
+- Confirm the response is ephemeral (`flags: 64`) and includes the expected version (`BOT_VERSION`) and environment (`BOT_ENV`).
+- Ensure `/health` increments the KV counters (`COMMAND_NAMES` includes `health`) so the dashboard reflects the hit.
+- Run `/health` after a redeploy to prove the worker can still sign and respond within 3 seconds.
+
+## /envcheck
+- Validate that every required binding (`DISCORD_PUBLIC_KEY`, at least) shows as present and well-formed.
+- Supply malformed or missing env vars and confirm `/envcheck` lists missing required values plus helpful hints.
+- Confirm optional fields (`BOT_VERSION`, `BOT_ENV`) appear in the output when provided.
+
+## /permissions
+- Trigger `/permissions` with a bot role lacking the documented bits to ensure the missing-flag list matches reality.
+- With a fully-permissioned role, verify the response says the bot has every critical permission.
+- Run the command in a channel with overrides to confirm it falls back to `app_permissions` and warns if it cannot read them.
+
+## /latency
+- Run `/latency` with a valid `X-Signature-Timestamp` header and confirm the result reports the same round-trip (healthy/warning).  
+- Remove or corrupt the timestamp header and ensure the command asks you to retry in a guild channel.
+
+## /helpme
+- Run `/helpme` and verify the button grid renders one button per runbook entry.  
+- Click each symptom button (via the component emulator) and check that internal and customer sections mention the diagnosis, root cause, and next step.
+- Ensure the `customerSafeExplanation` text matches the fixture in `fixtures/incidents/customer-safe.json`.
+
+## /incident
+- Run `/incident` without options and confirm the reply lists every scenario ID plus its label (derived from `fixtures/incidents/symptoms.json`).
+- Invoke `/incident <scenario>` (e.g., `invalid_token`) and verify the response mirrors the `buildHelpmeSymptomResponse` content and that the diagnosis snapshot matches `fixtures/incidents/diagnosis-snapshots.json`.
+- Run `/incident slow_handler_deferred` and assert the worker replies with `type: 5` (`DeferredChannelMessageWithSource`) within the 3-second window before any long-running work begins.
+- Check this deferred case catches the `requiresDeferredResponse` flag so the follow-up message can be issued safely after the defer.
+
+## Regression checks
+- When adding new scenarios, update `@botmedic/rules` (and `@botmedic/commands` if needed), regenerate `site/js/data.js` with `npm run generate-site-data`, and refresh `fixtures/incidents/*` so the runbooks, dashboard, and tests stay in sync.
+- Run `npm --workspace apps/bot-worker test` to cover signature verification, command routing, incident fixtures, and deferred-response behavior.
+</file>
+
+<file path="site/runbooks/dependency_runtime_mismatch.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · dependency_runtime_mismatch</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="dependency_runtime_mismatch">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook Library · BotMedic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-list">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p>Library · Companion runbooks &amp; operator practice</p>
+        <h1>Failure runbooks</h1>
+        <p>
+          Each page below mirrors the logic in <code>@botmedic/rules</code>. The intent is documented in
+          <code>packages/playbooks/</code> and enriched with incident storytelling kept in <code>fixtures/incidents/</code>.
+        </p>
+      </header>
+
+      <section>
+        <h2>Browse by symptom</h2>
+        <div class="runbook-gallery" data-runbook-list></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      These runbooks are curated for portfolio reviews so recruiters see both the polished explanation and the support logic.
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/invalid_token.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · invalid_token</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="invalid_token">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/missing_bot_permission.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · missing_bot_permission</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="missing_bot_permission">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/missing_env_var.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · missing_env_var</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="missing_env_var">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/role_channel_permission_denial.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · role_channel_permission_denial</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="role_channel_permission_denial">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/slow_handler_deferred.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · slow_handler_deferred</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="slow_handler_deferred">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/stale_deployment.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · stale_deployment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="stale_deployment">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/webhook_endpoint_error.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · webhook_endpoint_error</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="webhook_endpoint_error">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/wrong_interaction_url.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · wrong_interaction_url</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="wrong_interaction_url">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/runbooks/wrong_public_key.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Runbook · wrong_public_key</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/site.css" />
+  </head>
+  <body data-page="runbook-detail" data-runbook="wrong_public_key">
+    <nav class="page-nav">
+      <a href="../index.html">Home</a>
+      <a href="index.html">All runbooks</a>
+      <a href="../diagnosis.html">Diagnosis explainer</a>
+      <a href="../quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p data-runbook-label>Case identifier</p>
+        <h1 data-runbook-name>Runbook name</h1>
+        <p data-runbook-symptom>Symptom</p>
+        <span class="pill" data-runbook-confidence>Confidence</span>
+      </header>
+
+      <section data-runbook-detail></section>
+
+      <section>
+        <p>
+          The polished narrative is paired with the operator view so hiring managers see both the polished explanation and the raw support logic.
+        </p>
+        <p>
+          This mirrors <code>@botmedic/rules</code> and the companion <code>packages/playbooks/</code> intent.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../index.html">Return to overview</a>
+    </footer>
+
+    <script type="module" src="../js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="site/diagnosis.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>How diagnosis works · BotMedic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/site.css" />
+  </head>
+  <body data-page="diagnosis">
+    <nav class="page-nav">
+      <a href="index.html">Home</a>
+      <a href="runbooks/index.html">Runbook library</a>
+      <a href="quick-reference.html">Quick reference</a>
+    </nav>
+
+    <main>
+      <header>
+        <p>Diagnostics narrative</p>
+        <h1>How diagnosis works</h1>
+        <p>
+          Each helpme symptom goes through a deterministic rule case. The evidence bundles, generates a confidence score, and the worker emits both
+          internal guidance plus customer-safe messaging.
+        </p>
+      </header>
+
+      <section>
+        <h2>Flow timeline</h2>
+        <div class="arch-diagram">
+          <div data-diagnosis-timeline></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Support logic vs. human story</h2>
+        <div class="runbook-columns" data-support-vs-human></div>
+      </section>
+
+      <section>
+        <h2>Signal sources</h2>
+        <p>
+          Evidence strings, first checks, and safe recovery steps all live in the source rule cases that drive <code>buildHelpmeResponse</code>
+          interactions. The companion site captures the same entries so reviewers can inspect both layers.
+        </p>
+        <a class="cta-button" href="runbooks/index.html">Browse runbooks</a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      Workflows documented here tie back to <code>@botmedic/rules</code> and precursor artifacts in <code>packages/playbooks/</code>.
+    </footer>
+
+    <script type="module" src="js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="README.md">
+# BotMedic
+
+A Phase 1 implementation of the BotMedic Discord support bot. The architecture is staged for security-first interactions on Cloudflare Workers with a companion documentation site and reusable rule/playbook packages.
+
+## Workspace layout
+- `apps/bot-worker/`: Cloudflare Worker handling Discord interactions and the `/health` command.
+- `site/`: Companion static explorer for runbooks, failures, and architecture summaries.
+- `packages/rules/`, `packages/commands/`, & `packages/playbooks/`: Shared catalogs for runbooks, command metadata, and narrative artifacts.
+- `fixtures/incidents/`: Sample incidents/diagnoses for regression and demos.
+- `docs/architecture/`: Architecture narrative (Discord → Worker → command handler → rules).
+- `tests/`: Higher-level checks (Vitest lives inside `apps/bot-worker/tests/`).
+
+## Getting started
+1. Install dependencies at the workspace root: `npm install`.
+2. Configure Cloudflare via `apps/bot-worker/wrangler.toml` and set secrets with `wrangler secret put` (see `apps/bot-worker/README.md`).
+3. Regenerate the companion site data whenever the shared rule/command catalogs change via `npm run generate-site-data`.
+4. Deploy the worker with `npm --workspace apps/bot-worker run deploy` and register `/health` with `npm --workspace apps/bot-worker run register:commands`.
+
+## Phase 1 focus
+Deliverables for this phase are:
+- Secure Cloudflare Worker handling Discord signature validation and PING responses.
+- `/health` slash command returning ephemeral diagnostics.
+- Documentation covering worker setup, command registration, and the companion site intent.
+</file>
+
+<file path=".github/workflows/pages.yml">
+name: CI / Deploy site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: build + generate data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate companion site data
+        run: npm run generate-site-data
+
+      - name: Run bot-worker tests
+        run: npm test
+
+      - name: Upload site assets
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    name: publish site
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+</file>
+
+<file path="apps/bot-worker/src/telemetry.ts">
+import { EnvBindings } from './types/discord';
+import { COMMAND_NAMES, type CommandName } from '@botmedic/commands';
+import type { RuleCase } from '@botmedic/rules';
+
+const COMMAND_COUNTER_KEY = 'botmedic:command_counts';
+const HEALTH_KEY = 'botmedic:last_health';
+const DIAGNOSIS_KEY = 'botmedic:last_diagnosis';
+
+export interface HealthRecord {
+  timestamp: string;
+  environment?: string;
+}
+
+export interface DiagnosisRecord {
+  timestamp: string;
+  ruleId: RuleCase['id'];
+  label: string;
+  safeNextStep: string;
+}
+
+export interface DashboardData {
+  commandCounts: Record<CommandName, number>;
+  lastHealth?: HealthRecord;
+  lastDiagnosis?: DiagnosisRecord;
+}
+
+function buildDefaultCounts(): Record<CommandName, number> {
+  return COMMAND_NAMES.reduce((acc, command) => {
+    acc[command] = 0;
+    return acc;
+  }, {} as Record<CommandName, number>);
+}
+
+function isTrackedCommand(name: string): name is CommandName {
+  return (COMMAND_NAMES as readonly string[]).includes(name);
+}
+
+async function readJson<T>(kv: KVNamespace, key: string): Promise<T | null> {
+  try {
+    return (await kv.get(key, { type: 'json' })) as T | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function recordCommandUsage(env: EnvBindings, commandName: string): Promise<void> {
+  const kv = env.DASHBOARD_KV;
+  if (!kv) return;
+
+  const normalized = commandName.toLowerCase();
+  if (!isTrackedCommand(normalized)) {
+    return;
+  }
+
+  const existing = (await kv.get(COMMAND_COUNTER_KEY, { type: 'json' })) as Record<string, number> | null;
+  const next: Record<string, number> = { ...(existing ?? {}) };
+  next[normalized] = (Number(next[normalized] ?? 0) + 1) || 1;
+
+  await kv.put(COMMAND_COUNTER_KEY, JSON.stringify(next));
+}
+
+export async function recordHealthSuccess(env: EnvBindings): Promise<void> {
+  const kv = env.DASHBOARD_KV;
+  if (!kv) return;
+
+  const payload: HealthRecord = {
+    timestamp: new Date().toISOString(),
+    environment: env.BOT_ENV
+  };
+
+  await kv.put(HEALTH_KEY, JSON.stringify(payload));
+}
+
+export async function recordDiagnosis(env: EnvBindings, rule?: RuleCase): Promise<void> {
+  const kv = env.DASHBOARD_KV;
+  if (!kv || !rule) return;
+
+  const payload: DiagnosisRecord = {
+    timestamp: new Date().toISOString(),
+    ruleId: rule.id,
+    label: rule.buttonLabel,
+    safeNextStep: rule.safeNextStep
+  };
+
+  await kv.put(DIAGNOSIS_KEY, JSON.stringify(payload));
+}
+
+export async function readDashboardData(env: EnvBindings): Promise<DashboardData> {
+  const kv = env.DASHBOARD_KV;
+  const defaults = buildDefaultCounts();
+  if (!kv) {
+    return {
+      commandCounts: defaults
+    };
+  }
+
+  const storedCounts = (await readJson<Record<string, number>>(kv, COMMAND_COUNTER_KEY)) ?? {};
+  const commandCounts = COMMAND_NAMES.reduce((acc, command) => {
+    const storedValue = storedCounts[command];
+    acc[command] = Number(storedValue ?? 0);
+    return acc;
+  }, {} as Record<CommandName, number>);
+
+  const lastHealth = await readJson<HealthRecord>(kv, HEALTH_KEY);
+  const lastDiagnosis = await readJson<DiagnosisRecord>(kv, DIAGNOSIS_KEY);
+
+  return {
+    commandCounts,
+    lastHealth: lastHealth ?? undefined,
+    lastDiagnosis: lastDiagnosis ?? undefined
+  };
+}
+
+export { COMMAND_NAMES };
+export type { CommandName };
+</file>
+
+<file path="apps/bot-worker/tests/rules.test.ts">
+import { describe, it, expect } from 'vitest';
+import { RULE_CASES, getRuleCase, getRuleCaseById } from '@botmedic/rules';
+
+describe('rule catalog', () => {
+  it('defines all seeded cases and metadata', () => {
+    expect(RULE_CASES).toHaveLength(10);
+
+    for (const rule of RULE_CASES) {
+      expect(rule.symptom).toBeTruthy();
+      expect(rule.evidence.length).toBeGreaterThan(0);
+      expect(rule.diagnosis).toBeTruthy();
+      expect(rule.likelyCause).toBeTruthy();
+      expect(rule.firstChecks.length).toBeGreaterThan(0);
+      expect(rule.safeNextStep).toBeTruthy();
+      expect(rule.customerSafeExplanation).toBeTruthy();
+      expect(rule.safeRecoverySteps.length).toBeGreaterThan(0);
+      expect(rule.dontDoThisFirst).toBeTruthy();
+      expect(rule.customId).toBe(`helpme_symptom_${rule.id}`);
+      expect(rule.buttonLabel).toBeTruthy();
+    }
+  });
+
+  it('maps custom IDs back to their rule', () => {
+    for (const rule of RULE_CASES) {
+      expect(getRuleCase(rule.customId)).toBe(rule);
+    }
+
+    for (const rule of RULE_CASES) {
+      expect(getRuleCase(rule.customId)).toBe(rule);
+      expect(getRuleCaseById(rule.id)).toBe(rule);
+    }
+
+    expect(getRuleCase('unknown')).toBeUndefined();
+    const deferredRule = RULE_CASES.find((rule) => rule.requiresDeferredResponse);
+    expect(deferredRule?.id).toBe('slow_handler_deferred');
+  });
+});
+</file>
+
+<file path="docs/architecture/README.md">
+# Architecture overview
+
+BotMedic v1 architecture:
+1. Discord user issues `/health` via the guild bot.
+2. Discord sends the interaction to a Cloudflare Worker (public endpoint) with `X-Signature-Ed25519` and `X-Signature-Timestamp` headers.
+3. Worker validates the signature, responds to `type: 1` PINGs, and routes `/health` to the command handler.
+4. The handler builds an ephemeral response (flags: 64) and writes telemetry to a `DASHBOARD_KV` namespace so command counts, health checks, and diagnoses are persisted.
+5. A lightweight `GET /dashboard` page reads that KV data plus curated incident samples and renders counts, timestamps, and recommended next steps for reviewers.
+6. Companion site and future Pages functions surface runbooks, playbooks, and incident galleries.
+
+Phase 7 adds an `/incident` command and machine-readable incident library that mirrors the rule cases. Runbooks and the site now reference the `fixtures/incidents/symptoms.json`, `diagnosis-snapshots.json`, and `customer-safe.json` files so the same data powers the demo, snapshots, and regression tests. These fixtures also back the new `docs/test-checklists/commands.md`, which enumerates how to exercise each slash command (including proving the deferred `/incident slow_handler_deferred` path that is required by Discord’s 3-second timeout rule). Future artifacts will continue to extend `packages/rules/`, `packages/playbooks/`, and `fixtures/incidents/` to drive the static site narrative.
+</file>
+
+<file path="site/js/data.js">
+/**
+ * AUTO-GENERATED. Do not edit directly.
+ * Run "npm run generate-site-data" after updating rules or commands.
+ */
+
+export const commands = [
+  {
+    "name": "health",
+    "icon": "🩺",
+    "description": "Confirm the worker is alive, shows version/environment, and logs a timestamped check."
+  },
+  {
+    "name": "envcheck",
+    "icon": "🧭",
+    "description": "Validate required bindings (Discord key, version, env) and surface malformed values."
+  },
+  {
+    "name": "permissions",
+    "icon": "🛠️",
+    "description": "Inspect the bot/application permissions that arrived with the slash command."
+  },
+  {
+    "name": "latency",
+    "icon": "⚡",
+    "description": "Compare Discord timestamp headers to now and report around-trip latency and warnings."
+  },
+  {
+    "name": "helpme",
+    "icon": "🤖",
+    "description": "Present a symptom grid, then surface internal diagnostics + customer-friendly messaging."
+  },
+  {
+    "name": "incident",
+    "icon": "🧪",
+    "description": "Replay a seeded failure scenario, including the deferred-response path for slow handlers."
+  }
+];
+
+export const ruleCases = [
+  {
+    "id": "invalid_token",
+    "customId": "helpme_symptom_invalid_token",
+    "buttonLabel": "Invalid/rotated bot token",
+    "buttonEmoji": "🔐",
+    "buttonStyle": 1,
+    "symptom": "Slash commands return 401s or disappear before reaching the worker whenever Discord hits the endpoint.",
+    "evidence": [
+      "Discord logs list \"401 Unauthorized\" before the HTTP body ever arrives",
+      "Worker traces show zero requests even though Discord reports interaction attempts",
+      "A fresh deployment or role change coincided with the bot token being rotated"
+    ],
+    "diagnosis": "Discord rejects the bot token, so interactions never hit the worker despite Cloudflare being available.",
+    "likelyCause": "DISCORD_BOT_TOKEN in Cloudflare is empty, expired, or mismatched with the Discord application.",
+    "confidenceScore": 90,
+    "firstChecks": [
+      "Copy the bot token from the Discord developer portal and paste it into Cloudflare secrets verbatim",
+      "Trigger a redeploy so the worker picks up the rotated token before testing /health again"
+    ],
+    "safeNextStep": "Rotate or restore the bot token, redeploy, then run /health in a staging guild.",
+    "escalationThreshold": "Escalate if Discord still rejects commands with 401s after two redeploys with the verified token.",
+    "customerSafeExplanation": "BotMedic cannot authenticate with Discord until the bot credentials are restored; we are refreshing them now.",
+    "safeRecoverySteps": [
+      "Validate the bot token listed in the Discord portal and paste it into Cloudflare secrets.",
+      "Redeploy the worker so the new token is active, then run diagnostics to confirm interaction replies succeed."
+    ],
+    "dontDoThisFirst": "Do not change DNS routes or permissions before confirming the token value is correct."
+  },
+  {
+    "id": "missing_bot_permission",
+    "customId": "helpme_symptom_missing_bot_permission",
+    "buttonLabel": "Missing bot permission",
+    "buttonEmoji": "⚠️",
+    "buttonStyle": 3,
+    "symptom": "Slash commands or responses get dropped/rejected with warnings about missing permissions.",
+    "evidence": [
+      "The /permissions command reports missing flags such as Send Messages or Use Application Commands",
+      "Discord logs mention \"Missing Permissions\" when the bot tries to send an interaction reply",
+      "The bot role lacks the same permission bits the docs require"
+    ],
+    "diagnosis": "Discord refuses to run commands because the bot role does not have the required high-level permissions.",
+    "likelyCause": "Core permission bits (view/send/embed/use application commands) are absent on the bot role.",
+    "confidenceScore": 82,
+    "firstChecks": [
+      "Run /permissions and capture the list of missing flags",
+      "Compare the bot role's permission bits to the documented checklist and update as needed"
+    ],
+    "safeNextStep": "Grant the missing permission bits to the bot role (and redeploy overrides) before issuing commands.",
+    "escalationThreshold": "Escalate if permission edits still yield missing flags after two rounds of updates.",
+    "customerSafeExplanation": "BotMedic is blocked from sending diagnostic replies because it lacks required Discord permissions.",
+    "safeRecoverySteps": [
+      "Update the bot role so it has View Channels, Send Messages, Embed Links, Read History, and Use Application Commands.",
+      "Confirm channel overrides do not revoke these permissions, then re-run /permissions."
+    ],
+    "dontDoThisFirst": "Do not redeploy the worker or touch DNS before verifying the permission bits."
+  },
+  {
+    "id": "missing_env_var",
+    "customId": "helpme_symptom_missing_env_var",
+    "buttonLabel": "Missing environment variable",
+    "buttonEmoji": "🧪",
+    "buttonStyle": 2,
+    "symptom": "Envcheck reports missing or malformed bindings and commands behave unpredictably.",
+    "evidence": [
+      "/envcheck flags required values as absent",
+      "Worker logs print warnings about empty BOT_ENV or DISCORD_PUBLIC_KEY",
+      "Changes to BOT_VERSION alter command text unexpectedly"
+    ],
+    "diagnosis": "One or more critical environment variables are not set or malformed, so the worker runs with incomplete configuration.",
+    "likelyCause": "Secrets were not inserted into the Cloudflare deployment or were mistyped during the last deploy.",
+    "confidenceScore": 78,
+    "firstChecks": [
+      "Run /envcheck; ensure the required keys are present and formatted correctly",
+      "Compare the Cloudflare secret values to an .env.local copy or deployment manifest"
+    ],
+    "safeNextStep": "Add the missing variables with valid values and redeploy the worker.",
+    "escalationThreshold": "Escalate if required bindings remain missing after deployments to both staging and production.",
+    "customerSafeExplanation": "BotMedic is missing configuration values, so we need to restore those secrets before it can respond reliably.",
+    "safeRecoverySteps": [
+      "Set DISCORD_PUBLIC_KEY, BOT_VERSION, and BOT_ENV to valid strings in KV or secrets.",
+      "Rerun /envcheck until it reports \"Required variables look good.\""
+    ],
+    "dontDoThisFirst": "Avoid deleting other secrets before recording their current values so they can be restored if needed."
+  },
+  {
+    "id": "wrong_interaction_url",
+    "customId": "helpme_symptom_wrong_interaction_url",
+    "buttonLabel": "Wrong interaction URL",
+    "buttonEmoji": "🌐",
+    "buttonStyle": 4,
+    "symptom": "Discord reports 404/503 on interactions even though the worker is deployed.",
+    "evidence": [
+      "Discord developer dashboard shows endpoint errors or \"Failed to reach your application\"",
+      "Latency checks never reach the worker but DNS and certificates look healthy",
+      "New deployments include a different route or domain than the one registered"
+    ],
+    "diagnosis": "Discord is hitting an outdated or missing interaction URL, so requests never arrive at the current worker.",
+    "likelyCause": "The registered interaction endpoint points to an old subdomain, path, or disabled worker route.",
+    "confidenceScore": 74,
+    "firstChecks": [
+      "Confirm the interaction URL in Discord matches the latest published Cloudflare worker domain and path",
+      "Check Cloudflare Workers routes and DNS records to ensure they are active"
+    ],
+    "safeNextStep": "Update the interaction URL to the correct worker and run /health to verify responses.",
+    "escalationThreshold": "Escalate if the endpoint remains unreachable for more than 10 minutes after updates.",
+    "customerSafeExplanation": "Discord cannot find the address for BotMedic, so commands are dropped before they reach us.",
+    "safeRecoverySteps": [
+      "Copy the current worker URL and paste it into the Discord application's interaction endpoint.",
+      "Ensure any CDN or DNS changes have fully propagated before retesting."
+    ],
+    "dontDoThisFirst": "Do not rotate keys or secrets before verifying that the endpoint itself is correct."
+  },
+  {
+    "id": "wrong_public_key",
+    "customId": "helpme_symptom_wrong_public_key",
+    "buttonLabel": "Wrong public key",
+    "buttonEmoji": "🧵",
+    "buttonStyle": 1,
+    "symptom": "Signature verification fails even though the request reaches the worker.",
+    "evidence": [
+      "Worker logs show \"Missing Discord public key\" or signature validation errors",
+      "Requests drop into the invalid-signature branch before returning any command output",
+      "The registered public key differs from the portal value after a recent key rotation"
+    ],
+    "diagnosis": "Discord signs requests with the most recent public key, but the worker still uses the old or missing value.",
+    "likelyCause": "DISCORD_PUBLIC_KEY in the worker configuration is stale, empty, or miscopied.",
+    "confidenceScore": 86,
+    "firstChecks": [
+      "Copy the public key from the Discord developer portal and verify the 64-character hex string matches Cloudflare",
+      "Restart or redeploy the worker so the new key is picked up before rerunning commands"
+    ],
+    "safeNextStep": "Paste the correct public key into secrets and re-run /health to confirm verification succeeds.",
+    "escalationThreshold": "Escalate if signature failures persist across builds after updating the public key.",
+    "customerSafeExplanation": "BotMedic is reachable, but Discord rejects the signed payloads because the public key is misconfigured.",
+    "safeRecoverySteps": [
+      "Update DISCORD_PUBLIC_KEY with the portal value and rerun /envcheck to confirm it passes validation.",
+      "Redeploy the worker and then invoke /health to ensure the verification step no longer fails."
+    ],
+    "dontDoThisFirst": "Do not rotate the bot token before confirming the public key matches the portal."
+  },
+  {
+    "id": "dependency_runtime_mismatch",
+    "customId": "helpme_symptom_dependency_runtime_mismatch",
+    "buttonLabel": "Dependency/runtime mismatch",
+    "buttonEmoji": "🧰",
+    "buttonStyle": 2,
+    "symptom": "The worker deploys but commands throw stack traces about unsupported modules or syntax.",
+    "evidence": [
+      "Cloudflare worker logs mention unexpected exports or missing dependencies",
+      "Local builds succeed, but deployed /health errors out with runtime issues",
+      "Package lock or bundler targets a Node API that Workers does not support"
+    ],
+    "diagnosis": "A dependency or platform API the worker relies on is unavailable in the deployed Cloudflare runtime.",
+    "likelyCause": "The build output targets a higher Node version or includes modules that the Workers environment forbids.",
+    "confidenceScore": 66,
+    "firstChecks": [
+      "Inspect the bundle or stack trace for Web API/polyfill stderr",
+      "Compare dependency versions between local builds and the deployed lockfile"
+    ],
+    "safeNextStep": "Adjust the transpiler or dependency versions so they produce supported runtime constructs, then redeploy.",
+    "escalationThreshold": "Escalate if runtime mismatches continue after locking the build target.",
+    "customerSafeExplanation": "BotMedic encountered a runtime incompatibility; we are adjusting the build so it can run in Cloudflare Workers.",
+    "safeRecoverySteps": [
+      "Transpile the worker to ES2020 and remove unsupported Node-specific APIs.",
+      "Lock dependency versions (including @noble/ed25519) and rebuild before redeploying."
+    ],
+    "dontDoThisFirst": "Do not immediately rollback; first confirm the bundle is targeting the supported worker runtime."
+  },
+  {
+    "id": "stale_deployment",
+    "customId": "helpme_symptom_stale_deployment",
+    "buttonLabel": "Stale deployment",
+    "buttonEmoji": "⚙️",
+    "buttonStyle": 4,
+    "symptom": "Recent deployments leave the worker tied to an older commit or disabled route, so commands time out.",
+    "evidence": [
+      "Cloudflare dashboard shows the latest publish as failed or disabled",
+      "Discord reports timeouts even though the worker shows no new logs",
+      "Deployments land on an old version, and /health returns outdated content"
+    ],
+    "diagnosis": "Discord is hitting an inactive or stale worker deployment, so commands never hit the current logic.",
+    "likelyCause": "The worker route is disabled or the DNS still points to an older release after a deploy.",
+    "confidenceScore": 75,
+    "firstChecks": [
+      "Check Cloudflare Worker deployments, ensuring the active version has the latest code",
+      "Confirm DNS or custom domain routes are enabled and point to the right worker"
+    ],
+    "safeNextStep": "Re-deploy or re-enable the worker route, then test /health within the same guild.",
+    "escalationThreshold": "Escalate if multiple deployments keep routing to stale builds and commands stay unresponsive.",
+    "customerSafeExplanation": "BotMedic is temporarily offline because the current deployment isn't wired up; we are promoting the latest build.",
+    "safeRecoverySteps": [
+      "Re-deploy the worker and verify the route is enabled for the Discord domain.",
+      "Confirm the published timestamp aligns with the latest release notes before testing."
+    ],
+    "dontDoThisFirst": "Do not delete dashboards or KV entries before ensuring the worker release is live."
+  },
+  {
+    "id": "webhook_endpoint_error",
+    "customId": "helpme_symptom_webhook_endpoint_error",
+    "buttonLabel": "Webhook endpoint error",
+    "buttonEmoji": "🚨",
+    "buttonStyle": 5,
+    "symptom": "Discord hits the interaction endpoint but returns webhook-style HTTP 500/502 errors (before the worker responds).",
+    "evidence": [
+      "Discord reports a webhook failure with a generic HTTP 500/502/503 payload",
+      "Cloudflare shows HTTP gateway or worker error before the application logic executes",
+      "New dependencies or cron jobs introduced errors when loading the worker bundle"
+    ],
+    "diagnosis": "The worker code crashes at startup or during request parsing, so Discord sees a webhook failure before flow reaches commands.",
+    "likelyCause": "Unhandled runtime errors—extra dependencies, misconfigured bindings, or bundler output—cause the worker to crash.",
+    "confidenceScore": 71,
+    "firstChecks": [
+      "Review Cloudflare worker logs for unhandled exceptions or module resolution errors",
+      "Confirm every dependency referenced by the worker is included in package-lock and is published"
+    ],
+    "safeNextStep": "Fix the startup exception (missing dependency or config) and redeploy; then test /health.",
+    "escalationThreshold": "Escalate if webhook failures persist after fixing the reported crash points.",
+    "customerSafeExplanation": "BotMedic cannot process interactions right now because the worker code is crashing; we are addressing the issue.",
+    "safeRecoverySteps": [
+      "Align go live dependencies and re-run builds to ensure Cloudflare Workers can instantiate the module.",
+      "Deploy the patched build and monitor logs for clean startup before triggering /health."
+    ],
+    "dontDoThisFirst": "Do not rotate keys or adjust DNS before you've resolved the runtime crash."
+  },
+  {
+    "id": "role_channel_permission_denial",
+    "customId": "helpme_symptom_role_channel_permission_denial",
+    "buttonLabel": "Role/channel permission denial",
+    "buttonEmoji": "🚫",
+    "buttonStyle": 3,
+    "symptom": "Commands fail in specific channels even though the bot role claims to have permissions.",
+    "evidence": [
+      "The /permissions command lists the required flags, but channel overrides still block messages",
+      "Guild logs mention \"Missing Permissions\" only in channels with overrides",
+      "General permissions look good, yet interactions time out when scoped to one channel"
+    ],
+    "diagnosis": "Channel overrides or role hierarchies deny permissions, preventing BotMedic from responding even when global flags are set.",
+    "likelyCause": "A channel override or higher-priority role removes View/Send permissions after the interaction starts.",
+    "confidenceScore": 68,
+    "firstChecks": [
+      "Inspect channel overrides where diagnostics fail and ensure the bot role can still send messages",
+      "Check if any higher-priority roles revoke embeds or application command usage"
+    ],
+    "safeNextStep": "Adjust channel overrides or role hierarchies so BotMedic can reply in the affected channels.",
+    "escalationThreshold": "Escalate if overrides continue to deny permissions after manual fixes.",
+    "customerSafeExplanation": "BotMedic needs an extra permission tweak because channel-level restrictions are preventing replies.",
+    "safeRecoverySteps": [
+      "Grant the bot role View/Send/Embed permissions again in the channel overrides.",
+      "Re-run /permissions in that channel to confirm the overrides no longer block the bot."
+    ],
+    "dontDoThisFirst": "Do not delete the bot role or its parent roles before adjusting overrides."
+  },
+  {
+    "id": "slow_handler_deferred",
+    "customId": "helpme_symptom_slow_handler_deferred",
+    "buttonLabel": "Slow handler requiring defer",
+    "buttonEmoji": "🐢",
+    "buttonStyle": 2,
+    "symptom": "A deferred diagnostic path is required because response logic takes longer than 3 seconds.",
+    "evidence": [
+      "Worker traces show interactions that take >3 seconds to complete",
+      "Discord logs mention \"Interaction failed\" because the initial response wasn't sent",
+      "The team is trying to simulate long-running dependency checks for reproducing customer behavior"
+    ],
+    "diagnosis": "The interaction handler takes longer than 3 seconds, so Discord invalidates the single-use token unless a deferred ack is sent.",
+    "likelyCause": "Long-running checks (e.g., telemetry queries or dependency tests) are wrapped in the slash command path.",
+    "confidenceScore": 59,
+    "firstChecks": [
+      "Identify the slow-running dependencies and isolate them outside of the immediate interaction handler",
+      "Ensure every long-running path sends a deferred response with type 5 before executing heavy work"
+    ],
+    "safeNextStep": "Run `/incident slow_handler_deferred` to prove the deferred-response path works, then send a follow-up message.",
+    "escalationThreshold": "Escalate if Discord rejects tokens even after acknowledging the interaction within 3 seconds.",
+    "customerSafeExplanation": "We have a slow diagnostic path, so we are deferring the response until the work completes to keep Discord happy.",
+    "safeRecoverySteps": [
+      "Acknowledge the interaction within 3 seconds by returning a deferred response.",
+      "Run the slow checks after the defer and send the final message via a follow-up webhook."
+    ],
+    "dontDoThisFirst": "Do not wait longer than 3 seconds before returning a deferred response.",
+    "requiresDeferredResponse": true
+  }
+];
+</file>
+
+<file path="site/index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BotMedic Companion</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/site.css" />
+  </head>
+  <body data-page="home">
+    <header class="site-hero">
+      <div>
+        <p>Phase 5 · Companion site &amp; runbook library</p>
+        <h1>BotMedic runs both the polished story and the operator logic.</h1>
+        <p>
+          Public-facing context, failure galleries, and interactive runbooks live here alongside the diagnostic
+          bones that power slash commands.
+        </p>
+        <div class="hero-cta">
+          <a class="cta-button" href="runbooks/index.html">Runbook library</a>
+          <a class="cta-button" href="diagnosis.html">How diagnosis works</a>
+          <a class="cta-button" href="quick-reference.html">What to check first</a>
+          <a class="cta-button" href="/dashboard">Telemetry dashboard</a>
+        </div>
+      </div>
+      <div>
+        <img src="assets/hero-illustration.svg" alt="BotMedic architecture sketch" />
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <h2>Command gallery</h2>
+        <div class="card-grid" data-command-gallery></div>
+      </section>
+
+      <section>
+        <h2>Architecture diagram</h2>
+        <div class="arch-diagram">
+          <div class="arch-cell">
+            <strong>Discord user</strong>
+            <p>Launches /health or /helpme from a guild member context.</p>
+          </div>
+          <div class="arch-cell">
+            <strong>Cloudflare Worker</strong>
+            <p>Validates signatures, routes commands, writes telemetry, returns ephemeral response.</p>
+          </div>
+          <div class="arch-cell">
+            <strong>Command/Rule layer</strong>
+            <p>Switches on command name, consults rule cases, and builds internal + customer replies.</p>
+          </div>
+          <div class="arch-cell">
+            <strong>Runbook surfaces</strong>
+            <p>Static site, runbook library, and incident gallery explain failures for reviewers.</p>
+          </div>
+          <div class="arch-connectors">
+            <svg viewBox="0 0 120 20">
+              <path d="M10 10 H110" stroke="var(--accent)" stroke-width="2" fill="none" />
+              <polygon points="110,6 120,10 110,14" fill="var(--accent)" />
+            </svg>
+          </div>
+          <p>
+            Each step mirrors the documentation in <code>docs/architecture/README.md</code>: Discord signs the payload,
+            the worker validates it, routes to the command handler, and optionally writes to Workers KV for dashboards.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Failure gallery</h2>
+        <div class="card-grid" data-failure-gallery></div>
+      </section>
+
+      <section>
+        <h2>Runbook library preview</h2>
+        <div class="card-grid" data-runbook-teaser></div>
+        <p>Runbooks mirror the RuleCase logic in <code>@botmedic/rules</code> and expand what teams need to do.</p>
+      </section>
+
+      <section>
+        <h2>Walkthrough highlights</h2>
+        <div class="walkthroughs">
+          <article class="walkthrough-card">
+            <div class="walkthrough-anim">
+              <h3>Ping flow</h3>
+              <div class="pulse"></div>
+              <div class="pulse delay-1"></div>
+              <div class="pulse delay-2"></div>
+              <p>Launch /health → Worker validates signature → ephemeral reply.</p>
+            </div>
+          </article>
+          <article class="walkthrough-card">
+            <div class="walkthrough-anim">
+              <h3>Symptom intake</h3>
+              <div class="pulse"></div>
+              <div class="pulse delay-1"></div>
+              <p>Select symptom → button interaction → internal/customer response.</p>
+            </div>
+          </article>
+          <article class="walkthrough-card">
+            <div class="walkthrough-anim">
+              <h3>Runbook handoff</h3>
+              <div class="pulse"></div>
+              <div class="pulse delay-2"></div>
+              <p>Case data becomes static runbook, bridging polished explanation + raw logic.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>How diagnosis works</h2>
+        <div class="arch-diagram">
+          <div>
+            <p>
+              Each symptom button routes through <code>@botmedic/rules</code>. Evidence gains a confidence score, a
+              diagnosis string is assembled, and the worker returns internal and customer-friendly text in <code>buildSupportResponseSections</code>.
+            </p>
+            <p>
+              This static page explains the flow and proofs that runbooks keep the story aligned with the worker logic.
+            </p>
+            <a class="cta-button" href="diagnosis.html">Read the full explanation</a>
+          </div>
+          <div>
+            <p data-reference-summary></p>
+            <p>
+              Need a quick checklist? <a href="quick-reference.html">See what to check first.</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      Companion content lives in <code>packages/playbooks/</code> and <code>fixtures/incidents/</code> when we expand trials.
+    </footer>
+
+    <script type="module" src="js/site.js"></script>
+  </body>
+</html>
+</file>
+
+<file path="apps/bot-worker/scripts/register-commands.ts">
+import dotenv from 'dotenv';
+import { fetch } from 'undici';
+import { DISCORD_COMMANDS } from '@botmedic/commands';
+
+dotenv.config({ path: '.env.local' });
+
+const required = ['DISCORD_APP_ID', 'DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID'];
+for (const key of required) {
+  if (!process.env[key]) {
+    throw new Error(`Missing environment variable ${key}. Set it in .env.local or the shell before running the script.`);
+  }
+}
+
+const appId = process.env.DISCORD_APP_ID!;
+const botToken = process.env.DISCORD_BOT_TOKEN!;
+const guildId = process.env.DISCORD_GUILD_ID!;
+
+const commands = DISCORD_COMMANDS;
+
+async function main() {
+  const url = `https://discord.com/api/v10/applications/${appId}/guilds/${guildId}/commands`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bot ${botToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(commands)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error('Discord API rejected the command registration', text);
+    process.exit(1);
+  }
+
+  const data = await response.json();
+  console.log('Registered commands:', JSON.stringify(data, null, 2));
+}
+
+main().catch((error) => {
+  console.error('Command registration failed', error);
+  process.exit(1);
+});
+</file>
+
+<file path="apps/bot-worker/src/commands/helpme.ts">
+import { InteractionResponse, InteractionResponseType } from '../types/discord';
+import { RULE_CASES, getRuleCase, buildSupportResponseSections } from '@botmedic/rules';
+
+const BUTTONS_PER_ROW = 5;
+
+function buildSymptomRows() {
+  const rows: { type: 1; components: unknown[] }[] = [];
+  for (let i = 0; i < RULE_CASES.length; i += BUTTONS_PER_ROW) {
+    const chunk = RULE_CASES.slice(i, i + BUTTONS_PER_ROW);
+    rows.push({
+      type: 1,
+      components: chunk.map((rule) => ({
+        type: 2,
+        style: rule.buttonStyle,
+        label: rule.buttonLabel,
+        custom_id: rule.customId,
+        emoji: { name: rule.buttonEmoji }
+      }))
+    });
+  }
+  return rows;
+}
+
+export function buildHelpmeResponse(): InteractionResponse {
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content:
+        'Thanks for asking for help. Select the symptom that best matches what you are seeing so we can focus the diagnostics.',
+      flags: 64,
+      components: buildSymptomRows()
+    }
+  };
+}
+
+export function buildHelpmeSymptomResponse(customId?: string): InteractionResponse {
+  const rule = getRuleCase(customId);
+  const lines: string[] = ['BotMedic symptom intake:'];
+
+  if (rule) {
+    lines.push(`• You selected: ${rule.buttonLabel}`);
+    const { internal, customer } = buildSupportResponseSections(rule);
+    lines.push(...internal);
+    lines.push('');
+    lines.push(...customer);
+  } else {
+    lines.push('• Thanks for the input! If nothing fits, keep sending new symptoms or open an issue.');
+  }
+
+  lines.push('• ℹ️ The diagnostics data stays ephemeral so only you can see it.');
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content: lines.join('\n'),
+      flags: 64
+    }
+  };
+}
+</file>
+
+<file path="apps/bot-worker/src/types/discord.ts">
+export const InteractionType = {
+  Ping: 1,
+  ApplicationCommand: 2,
+  MessageComponent: 3
+} as const;
+
+export const InteractionResponseType = {
+  Pong: 1,
+  ChannelMessageWithSource: 4,
+  DeferredChannelMessageWithSource: 5
+} as const;
+
+export type InteractionTypeValue = (typeof InteractionType)[keyof typeof InteractionType];
+export type InteractionResponseTypeValue = (typeof InteractionResponseType)[keyof typeof InteractionResponseType];
+
+export interface InteractionOption {
+  name: string;
+  type: number;
+  value?: string | number | boolean;
+  options?: InteractionOption[];
+}
+
+export interface InteractionData {
+  name?: string;
+  custom_id?: string;
+  options?: InteractionOption[];
+}
+
+export interface Interaction {
+  id: string;
+  type: InteractionTypeValue;
+  data?: InteractionData;
+  token: string;
+  version: number;
+  app_permissions?: string;
+  member?: {
+    permissions?: string;
+  };
+}
+
+export interface InteractionResponse {
+  type: InteractionResponseTypeValue;
+  data?: {
+    content?: string;
+    flags?: number;
+    embeds?: unknown[];
+    components?: unknown[];
+  };
+}
+
+export interface EnvBindings {
+  DISCORD_PUBLIC_KEY: string;
+  BOT_VERSION?: string;
+  BOT_ENV?: string;
+  DASHBOARD_KV?: KVNamespace;
+}
+</file>
+
+<file path="site/README.md">
+# BotMedic companion site
+
+This folder now hosts the portfolio-ready Phase 5 companion experience:
+
+- `index.html`: public landing page with hero, command gallery, architecture diagram, failure gallery, walkthrough placeholders, and quick-reference teasers. It renders content by pulling from `js/data.js` so the UI reflects the same commands and runbooks that power the worker.
+- `runbooks/index.html`: library overview that lists every runbook derived from `@botmedic/rules` as well as notes about `packages/playbooks/` and `fixtures/incidents/` for future stories.
+- `runbooks/<case>.html`: six dedicated runbook detail pages (one per `RuleCase`) that highlight symptoms, evidence, diagnosis, safe steps, customer messaging, and curated “don’t do this first” warnings while mirroring the internal logic layer.
+- `diagnosis.html`: explains how symptom intake flows through the rule system, what data is collected, and how we report both internal vs. customer-facing responses.
+- `quick-reference.html`: triage table that lists immediate first checks, safe next steps, and links back to each runbook.
+- The landing hero now links to `/dashboard`, which is rendered by the worker and surfaces the persisted telemetry plus curated incident samples.
+
+Shared assets:
+- `css/site.css`: visual system (dark theme, cards, tables, animations) used across every page.
+- `js/data.js`: exports the commands array plus the normalized rule cases (including evidence, checks, safe steps, warnings) so the static site stays in sync with `@botmedic/rules`.
+- `js/site.js`: renderer script that inspects `body[data-page]` and populates the command gallery, failure cards, runbook templates, quick reference, and diagnosis sections with consistent markup.
+- `assets/hero-illustration.svg`: simple illustration for the landing hero.
+
+Data sync:
+- `scripts/generate-site-data.mts` (run via the root `npm run generate-site-data` script) rewrites `js/data.js` from the shared `@botmedic/commands` and `@botmedic/rules` metadata whenever the catalog evolves.
+
+No build tooling is required: the files are plain HTML/CSS/JS so GitHub Pages or Cloudflare Pages can serve them directly.
+</file>
+
+<file path="package.json">
+{
+  "name": "botmedic",
+  "private": true,
+  "workspaces": [
+    "apps/bot-worker",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm --workspace apps/bot-worker test",
+    "generate-site-data": "tsx scripts/generate-site-data.mts",
+    "lint": "echo \"No lint configured yet\""
+  },
+  "devDependencies": {
+    "tsx": "4.21.0"
+  }
+}
+</file>
+
+<file path="apps/bot-worker/src/index.ts">
+import { verifyDiscordRequest } from './utils/discord';
+import { buildEnvCheckResponse } from './commands/envcheck';
+import { buildHealthResponse } from './commands/health';
+import { buildHelpmeResponse, buildHelpmeSymptomResponse } from './commands/helpme';
+import { buildIncidentResponse } from './commands/incident';
+import { buildLatencyResponse } from './commands/latency';
+import { buildPermissionsResponse } from './commands/permissions';
+import { handleDashboardRequest } from './dashboard';
+import { recordCommandUsage, recordHealthSuccess, recordDiagnosis } from './telemetry';
+import { getRuleCase, SymptomId } from '@botmedic/rules';
+import {
+  InteractionType,
+  InteractionResponseType,
+  Interaction,
+  EnvBindings
+} from './types/discord';
+
+const JSON_HEADERS = { 'content-type': 'application/json' };
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), { headers: JSON_HEADERS });
+}
+
+export async function handleDiscordRequest(request: Request, env: EnvBindings): Promise<Response> {
+  if (request.method === 'GET') {
+    return handleDashboardRequest(request, env);
+  }
+
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+
+  const signature = request.headers.get('x-signature-ed25519');
+  const timestamp = request.headers.get('x-signature-timestamp');
+  const bodyText = await request.text();
+
+  if (!env.DISCORD_PUBLIC_KEY) {
+    return new Response('Missing Discord public key', { status: 500 });
+  }
+
+  const isValid = await verifyDiscordRequest(timestamp ?? '', bodyText, signature ?? '', env.DISCORD_PUBLIC_KEY);
+  if (!isValid) {
+    return new Response('Invalid request signature', { status: 401 });
+  }
+
+  let interaction: Interaction;
+  try {
+    interaction = JSON.parse(bodyText) as Interaction;
+  } catch (error) {
+    return new Response('Bad interaction payload', { status: 400 });
+  }
+
+  if (interaction.type === InteractionType.Ping) {
+    return jsonResponse({ type: InteractionResponseType.Pong });
+  }
+
+  if (interaction.type === InteractionType.MessageComponent) {
+    const rule = getRuleCase(interaction.data?.custom_id);
+    await recordDiagnosis(env, rule);
+    return jsonResponse(buildHelpmeSymptomResponse(interaction.data?.custom_id));
+  }
+
+  if (interaction.type === InteractionType.ApplicationCommand) {
+    const command = interaction.data?.name?.toLowerCase();
+    const scenarioOption = interaction.data?.options?.find((option) => option.name === 'scenario')?.value;
+    const scenarioId: SymptomId | undefined = typeof scenarioOption === 'string' ? (scenarioOption as SymptomId) : undefined;
+    if (!command) {
+      return new Response('Missing command name', { status: 400 });
+    }
+
+    await recordCommandUsage(env, command);
+    switch (command) {
+      case 'health':
+        await recordHealthSuccess(env);
+        return jsonResponse(buildHealthResponse(env));
+      case 'envcheck':
+        return jsonResponse(buildEnvCheckResponse(env));
+      case 'permissions':
+        return jsonResponse(buildPermissionsResponse(interaction));
+      case 'latency':
+        return jsonResponse(buildLatencyResponse(timestamp));
+      case 'helpme':
+        return jsonResponse(buildHelpmeResponse());
+      case 'incident':
+        return jsonResponse(buildIncidentResponse(scenarioId));
+      default:
+        return new Response('Command not implemented', { status: 400 });
+    }
+  }
+
+  return new Response('Unsupported interaction type', { status: 400 });
+}
+
+export default {
+  async fetch(request: Request, env: EnvBindings) {
+    return handleDiscordRequest(request, env);
+  }
+};
+</file>
+
+<file path="apps/bot-worker/tests/interaction.test.ts">
+import { describe, it, expect } from 'vitest';
+import * as ed25519 from '@noble/ed25519';
+import { buildEnvCheckResponse } from '../src/commands/envcheck';
+import { buildHealthResponse } from '../src/commands/health';
+import { buildLatencyResponse } from '../src/commands/latency';
+import { buildPermissionsResponse } from '../src/commands/permissions';
+import { buildHelpmeResponse, buildHelpmeSymptomResponse } from '../src/commands/helpme';
+import { buildDeferredResponse } from '../src/commands/incident';
+import { handleDiscordRequest } from '../src/index';
+import { verifyDiscordRequest } from '../src/utils/discord';
+import {
+  InteractionType,
+  InteractionResponseType,
+  EnvBindings,
+  Interaction
+} from '../src/types/discord';
+import { RULE_CASES } from '@botmedic/rules';
+
+const encoder = new TextEncoder();
+
+function bytesToHex(bytes: Uint8Array): string {
+  return [...bytes]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function createSignedInteraction(
+  payload: Record<string, unknown>,
+  privateKey: Uint8Array,
+  timestamp?: string
+): Promise<{ request: Request; timestamp: string }> {
+  const body = JSON.stringify(payload);
+  const ts = timestamp ?? `${Date.now()}`;
+  const signature = await ed25519.sign(encoder.encode(ts + body), privateKey);
+
+  const request = new Request('https://example.com/', {
+    method: 'POST',
+    headers: {
+      'x-signature-ed25519': bytesToHex(signature),
+      'x-signature-timestamp': ts,
+      'content-type': 'application/json'
+    },
+    body
+  });
+
+  return { request, timestamp: ts };
+}
+
+describe('Discord interaction helper', () => {
+  it('verifies valid signatures and rejects invalid ones', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const timestamp = `${Date.now()}`;
+    const payload = JSON.stringify({ type: InteractionType.Ping, id: '1', token: 'abc', version: 1 });
+    const message = timestamp + payload;
+    const signature = await ed25519.sign(encoder.encode(message), privateKey);
+
+    const valid = await verifyDiscordRequest(
+      timestamp,
+      payload,
+      bytesToHex(signature),
+      bytesToHex(publicKey)
+    );
+    expect(valid).toBe(true);
+
+    const invalid = await verifyDiscordRequest(timestamp, payload, '00', bytesToHex(publicKey));
+    expect(invalid).toBe(false);
+  });
+
+  it('builds a health response with the correct structure', () => {
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: 'deadbeef',
+      BOT_VERSION: '0.5.0',
+      BOT_ENV: 'dryrun'
+    };
+
+    const response = buildHealthResponse(env);
+    expect(response.type).toBe(InteractionResponseType.ChannelMessageWithSource);
+    expect(response.data?.flags).toBe(64);
+    expect(response.data?.content).toContain('v0.5.0');
+    expect(response.data?.content).toContain('dryrun');
+  });
+
+  it('builds an envcheck response when environment variables are valid', () => {
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: 'a'.repeat(64),
+      BOT_VERSION: '1.2.3',
+      BOT_ENV: 'production'
+    };
+
+    const response = buildEnvCheckResponse(env);
+    expect(response.data?.content).toContain('Required variables look good');
+    expect(response.data?.content).toContain('Bot version: 1.2.3');
+    expect(response.data?.content).toContain('Environment: production');
+  });
+
+  it('reports malformed environment values when they fail validation', () => {
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: 'deadbeef',
+      BOT_VERSION: '',
+      BOT_ENV: 'funky'
+    };
+
+    const response = buildEnvCheckResponse(env);
+    expect(response.data?.content).toContain('Malformed');
+    expect(response.data?.content).toContain('Discord public key');
+    expect(response.data?.content).toContain('Bot environment');
+  });
+
+  it('builds a permissions response that lists missing flags', () => {
+    const interaction: Interaction = {
+      id: 'perm-1',
+      type: InteractionType.ApplicationCommand,
+      data: { name: 'permissions' },
+      token: 'token',
+      version: 1,
+      app_permissions: ((1n << 10n) | (1n << 11n) | (1n << 31n)).toString()
+    };
+
+    const response = buildPermissionsResponse(interaction);
+    expect(response.data?.content).toContain('Missing the following permissions');
+    expect(response.data?.content).toContain('Embed links');
+    expect(response.data?.content).toContain('Read message history');
+  });
+
+  it('builds a permissions response that confirms all flags are present', () => {
+    const interaction: Interaction = {
+      id: 'perm-2',
+      type: InteractionType.ApplicationCommand,
+      data: { name: 'permissions' },
+      token: 'token',
+      version: 1,
+      app_permissions: (
+        (1n << 10n) |
+        (1n << 11n) |
+        (1n << 14n) |
+        (1n << 16n) |
+        (1n << 31n)
+      ).toString()
+    };
+
+    const response = buildPermissionsResponse(interaction);
+    expect(response.data?.content).toContain('Bot has all the essential channel permissions');
+  });
+
+  it('builds a latency response using the Discord timestamp header', () => {
+    const response = buildLatencyResponse('1000', 1400);
+    expect(response.data?.content).toContain('Latency is 400ms');
+    expect(response.data?.content).toContain('healthy');
+  });
+
+  it('builds a helpme response with interactive buttons', () => {
+    const response = buildHelpmeResponse();
+    expect(response.data?.flags).toBe(64);
+    const rows = response.data?.components ?? [];
+    const expectedRows = Math.ceil(RULE_CASES.length / 5);
+    expect(rows).toHaveLength(expectedRows);
+    const buttonCount = rows
+      .flatMap((row) => ((row as { components?: unknown[] })?.components ?? []))
+      .length;
+    expect(buttonCount).toBe(RULE_CASES.length);
+  });
+
+  it('builds a helpme symptom response for known buttons', () => {
+    const response = buildHelpmeSymptomResponse('helpme_symptom_invalid_token');
+    expect(response.data?.content).toContain('You selected: Invalid/rotated bot token');
+    expect(response.data?.content).toContain('Internal diagnosis:');
+    expect(response.data?.content).toContain('Probable root cause:');
+    expect(response.data?.content).toContain('Confidence level:');
+    expect(response.data?.content).toContain('Technical next step:');
+  });
+
+  it('handles helpme button interactions', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'component-1',
+        type: InteractionType.MessageComponent,
+        data: { custom_id: 'helpme_symptom_invalid_token' },
+        token: 'token',
+        version: 1
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data?.flags).toBe(64);
+    expect(body.data?.content).toContain('Invalid/rotated bot token');
+    expect(body.data?.content).toContain('Internal diagnosis:');
+    expect(body.data?.content).toContain('Diagnosis: Discord rejects the bot token, so interactions never hit the worker despite Cloudflare being available.');
+    expect(body.data?.content).toContain('Probable root cause:');
+    expect(body.data?.content).toContain('Exact checks performed:');
+    expect(body.data?.content).toContain('Customer-facing explanation:');
+    expect(body.data?.content).toContain('What happened:');
+    expect(body.data?.content).toContain('What to try next:');
+    expect(body.data?.content).toContain('When to contact support again:');
+  });
+
+  it('lists incident scenarios when no option is provided', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'incident-list',
+        type: InteractionType.ApplicationCommand,
+        data: { name: 'incident' },
+        token: 'token',
+        version: 1
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data?.content).toContain('Available incident scenarios:');
+    expect(body.data?.content).toContain('invalid_token');
+  });
+
+  it('replays a scenario via the incident command', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'incident-run',
+        type: InteractionType.ApplicationCommand,
+        data: { name: 'incident', options: [{ name: 'scenario', value: 'invalid_token' }] },
+        token: 'token',
+        version: 1
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data?.content).toContain('You selected: Invalid/rotated bot token');
+    expect(body.data?.content).toContain('Internal diagnosis:');
+  });
+
+  it('returns a deferred response for the slow handler scenario', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'incident-defer',
+        type: InteractionType.ApplicationCommand,
+        data: { name: 'incident', options: [{ name: 'scenario', value: 'slow_handler_deferred' }] },
+        token: 'token',
+        version: 1
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.type).toBe(InteractionResponseType.DeferredChannelMessageWithSource);
+  });
+
+  it('builds a deferred incident response helper', () => {
+    const slowRule = RULE_CASES.find((rule) => rule.id === 'slow_handler_deferred');
+    expect(slowRule).toBeDefined();
+    const response = buildDeferredResponse(slowRule!);
+    expect(response.type).toBe(InteractionResponseType.DeferredChannelMessageWithSource);
+  });
+
+  it('responds to PING interactions with type 1', async () => {
+    const privateKey = ed25519.utils.randomPrivateKey();
+    const publicKey = await ed25519.getPublicKey(privateKey);
+    const { request } = await createSignedInteraction(
+      {
+        id: 'ping-1',
+        token: 'token',
+        version: 1,
+        type: InteractionType.Ping
+      },
+      privateKey
+    );
+
+    const env: EnvBindings = {
+      DISCORD_PUBLIC_KEY: bytesToHex(publicKey)
+    };
+
+    const response = await handleDiscordRequest(request, env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ type: 1 });
+  });
+});
+</file>
+
+</files>
