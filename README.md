@@ -1,9 +1,36 @@
 # BotMedic
 
-BotMedic is a Phase 1 implementation of the Discord support bot that proves out a security-first Cloudflare Worker powered by shared runbooks, companion docs, and a static explorer site. The README that follows keeps developers oriented on the full workspace, automation, and testing surface so changes stay coordinated across the worker, shared packages, site assets, and incident fixtures.
+BotMedic is a serverless Discord incident-triage platform built with TypeScript, Cloudflare Workers, Discord slash commands, Workers KV telemetry, shared command/rule packages, and a static companion docs site. It verifies Discord webhooks, routes support commands, records telemetry, publishes runbook content, and keeps incident fixtures aligned across worker tests and the public site. This project demonstrates webhook validation, API routing, serverless backend design, observability, shared TypeScript packages, incident fixtures, documentation UX, and Vitest regression coverage.
+
+## Quick links
+- **Live demo:** [companion docs site](https://josuejero.github.io/BotMedic/)
+- **Screenshots:** [command registration](site/assets/screenshots/command-registration.svg), [`/health`](site/assets/screenshots/health-command.svg), [`/incident`](site/assets/screenshots/incident-command.svg), [`/dashboard`](site/assets/screenshots/dashboard-command.svg), [companion site](site/assets/screenshots/companion-site.png), [test output](site/assets/screenshots/test-output.svg)
+- **Test report:** `npm --workspace apps/bot-worker test`
+- **CI workflow:** `.github/workflows/pages.yml`
+- **Architecture docs:** `docs/architecture/README.md`, `docs/test-checklists/commands.md`, `site/README.md`
+- **Main code to inspect:** `apps/bot-worker/`, `packages/commands/`, `packages/rules/`, `fixtures/incidents/`
+
+## Employer scan
+**Best fit roles:** Backend Developer, Serverless Developer, Platform Engineer, QA Automation Engineer  
+**Core stack:** TypeScript, Cloudflare Workers, Discord API, Workers KV, Vitest, GitHub Pages  
+**What this proves:** Webhook verification, command routing, serverless APIs, observability, shared packages, fixture-driven regression tests  
+**Start here:** `apps/bot-worker/src/`, `packages/commands/`, `packages/rules/`, `fixtures/incidents/`
+
+## Screenshot gallery
+| Command registration | `/health` |
+| --- | --- |
+| ![BotMedic command registration screenshot](site/assets/screenshots/command-registration.svg) | ![BotMedic health command screenshot](site/assets/screenshots/health-command.svg) |
+
+| `/incident` | `/dashboard` |
+| --- | --- |
+| ![BotMedic incident command screenshot](site/assets/screenshots/incident-command.svg) | ![BotMedic dashboard screenshot](site/assets/screenshots/dashboard-command.svg) |
+
+| Companion site | Test output |
+| --- | --- |
+| ![BotMedic companion site screenshot](site/assets/screenshots/companion-site.png) | ![BotMedic test output screenshot](site/assets/screenshots/test-output.svg) |
 
 ## Architecture & mission
-- Phase 1 focuses on Discord signature validation, `/health`, telemetry capture, diagnostic commands, and surfacing the companion documentation site. The flow lives in `docs/architecture/README.md`: Discord sends interactions → Cloudflare Worker verifies signatures and routes commands → responses write to `DASHBOARD_KV` + `/dashboard` renders telemetry with incident samples.
+- BotMedic focuses on Discord signature validation, `/health`, telemetry capture, diagnostic commands, and surfacing the companion documentation site. The flow lives in `docs/architecture/README.md`: Discord sends interactions -> Cloudflare Worker verifies signatures and routes commands -> responses write to `DASHBOARD_KV` + `/dashboard` renders telemetry with incident samples.
 - The companion site (`site/README.md`) mirrors the same command metadata/runbooks so the landing page, runbook list/detail pages, diagnosis overview, and quick-reference table stay in sync with the backend logic.
 
 ## Workspace layout
