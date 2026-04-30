@@ -8,6 +8,14 @@
   "scripts": {
     "test": "npm --workspace apps/bot-worker test",
     "generate-site-data": "tsx scripts/generate-site-data.mts",
+    "metrics:prepare": "node -e \"const fs=require('fs'); ['metrics/raw','metrics/history','metrics/reports'].forEach(p=>fs.mkdirSync(p,{recursive:true}))\"",
+    "metrics:scope": "npm run metrics:prepare && tsx scripts/metrics/collect-scope.mts",
+    "test:json": "npm run metrics:prepare && npm --workspace apps/bot-worker run test:json",
+    "coverage": "npm run metrics:prepare && npm --workspace apps/bot-worker run coverage",
+    "metrics:ci": "tsx scripts/metrics/collect-github-actions.mts",
+    "metrics:build": "tsx scripts/metrics/build-current-metrics.mts",
+    "metrics:report": "tsx scripts/metrics/render-metrics-report.mts",
+    "metrics": "npm run metrics:scope && npm run test:json && npm run coverage && npm run metrics:ci && npm run metrics:build && npm run metrics:report",
     "lint": "echo \"No lint configured yet\""
   },
   "devDependencies": {

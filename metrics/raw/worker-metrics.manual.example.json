@@ -1,0 +1,21 @@
+{
+  "source": "Cloudflare Workers dashboard",
+  "recorded_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "window": "last_7_days",
+  "worker_name": "botmedic-worker",
+  "requests_total": null,
+  "requests_success": null,
+  "requests_errors": null,
+  "success_rate": null,
+  "error_rate": null,
+  "p50_wall_time_ms": null,
+  "p95_wall_time_ms": null,
+  "p99_wall_time_ms": null,
+  "p50_cpu_time_ms": null,
+  "p95_cpu_time_ms": null,
+  "p99_cpu_time_ms": null,
+  "script_threw_exception": null,
+  "exceeded_resources": null,
+  "internal_error": null,
+  "notes": "Use only values copied from Cloudflare metrics or exported through the Cloudflare API."
+}

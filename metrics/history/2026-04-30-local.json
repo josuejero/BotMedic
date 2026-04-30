@@ -1,0 +1,253 @@
+{
+  "project": "BotMedic",
+  "generated_at": "2026-04-30T12:16:58.884Z",
+  "commit_sha": "local",
+  "branch": "local",
+  "environment": "local",
+  "schema": "botmedic.metrics.v1",
+  "scope": {
+    "slash_commands": {
+      "value": 6,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "discord_command_definitions": {
+      "value": 6,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "rule_cases": {
+      "value": 10,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "symptom_fixtures": {
+      "value": 10,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "diagnosis_snapshots": {
+      "value": 10,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "customer_safe_messages": {
+      "value": 10,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "dashboard_samples": {
+      "value": 4,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "generated_runbook_pages": {
+      "value": 10,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "docs_markdown_files": {
+      "value": 2,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "screenshot_assets": {
+      "value": 6,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    }
+  },
+  "quality": {
+    "test_files": {
+      "value": 6,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "tests_total": {
+      "value": 25,
+      "source": "local",
+      "evidence": "metrics/raw/vitest-results.json"
+    },
+    "tests_passed": {
+      "value": 25,
+      "source": "local",
+      "evidence": "metrics/raw/vitest-results.json"
+    },
+    "tests_failed": {
+      "value": 0,
+      "source": "local",
+      "evidence": "metrics/raw/vitest-results.json"
+    },
+    "test_pass_rate": {
+      "value": 100,
+      "source": "local",
+      "evidence": "metrics/raw/vitest-results.json"
+    },
+    "statement_coverage": {
+      "value": 84.33,
+      "source": "local",
+      "evidence": "metrics/raw/coverage/coverage-summary.json"
+    },
+    "branch_coverage": {
+      "value": 66.66,
+      "source": "local",
+      "evidence": "metrics/raw/coverage/coverage-summary.json"
+    },
+    "function_coverage": {
+      "value": 89.74,
+      "source": "local",
+      "evidence": "metrics/raw/coverage/coverage-summary.json"
+    },
+    "line_coverage": {
+      "value": 84.33,
+      "source": "local",
+      "evidence": "metrics/raw/coverage/coverage-summary.json"
+    },
+    "synthetic_response_budget_tests": {
+      "value": 1,
+      "source": "synthetic",
+      "evidence": "metrics/raw/vitest-results.json",
+      "note": "Checks response builders against Discord initial-response budget in a controlled test run."
+    }
+  },
+  "delivery": {
+    "ci_status": {
+      "value": "local-only",
+      "source": "local",
+      "evidence": "metrics/raw/github-actions-runs.json"
+    },
+    "workflow_success_rate_30_runs": {
+      "value": null,
+      "source": "CI",
+      "evidence": "metrics/raw/github-actions-runs.json",
+      "note": "Skipped locally without GitHub Actions token."
+    },
+    "median_ci_duration_seconds": {
+      "value": null,
+      "source": "CI",
+      "evidence": "metrics/raw/github-actions-runs.json",
+      "note": "Skipped locally without GitHub Actions token."
+    },
+    "deployment_frequency_30_days": {
+      "value": null,
+      "source": "CI",
+      "evidence": "metrics/raw/github-actions-runs.json",
+      "note": "Skipped locally without GitHub Actions token."
+    },
+    "failed_pipeline_recovery_minutes": {
+      "value": null,
+      "source": "manual",
+      "evidence": "metrics/raw/github-actions-runs.json",
+      "note": "Add after enough failed/successful workflow history exists."
+    }
+  },
+  "reliability": {
+    "requests_total": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/interaction-rollup.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    },
+    "success_rate": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/interaction-rollup.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    },
+    "error_rate": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/interaction-rollup.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    },
+    "p50_latency_ms": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/interaction-rollup.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    },
+    "p95_latency_ms": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/interaction-rollup.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    },
+    "p99_latency_ms": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/interaction-rollup.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    },
+    "discord_initial_response_under_3s_rate": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/interaction-rollup.json",
+      "note": "Not recorded until Workers KV telemetry is exported."
+    },
+    "worker_cpu_time_p95_ms": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/worker-metrics.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    },
+    "resource_limit_errors": {
+      "value": null,
+      "source": "Cloudflare",
+      "evidence": "metrics/raw/worker-metrics.json",
+      "note": "Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported."
+    }
+  },
+  "security": {
+    "signature_verification_tests": {
+      "value": 1,
+      "source": "local",
+      "evidence": "metrics/raw/vitest-results.json"
+    },
+    "invalid_signature_tests": {
+      "value": 1,
+      "source": "local",
+      "evidence": "metrics/raw/vitest-results.json"
+    },
+    "dependabot_open_critical_high": {
+      "value": null,
+      "source": "manual",
+      "evidence": "GitHub Dependabot alerts",
+      "note": "Report from GitHub security alerts after enabled."
+    },
+    "codeql_open_alerts": {
+      "value": null,
+      "source": "manual",
+      "evidence": "GitHub code scanning alerts",
+      "note": "Report from GitHub code scanning after enabled."
+    },
+    "openssf_score": {
+      "value": null,
+      "source": "manual",
+      "evidence": "OpenSSF Scorecard workflow",
+      "note": "Report after Scorecard publishes a result."
+    }
+  },
+  "documentation": {
+    "generated_docs_pages": {
+      "value": 10,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "architecture_docs": {
+      "value": 2,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "screenshots": {
+      "value": 6,
+      "source": "local",
+      "evidence": "metrics/raw/scope.json"
+    },
+    "demo_links_verified": {
+      "value": null,
+      "source": "manual",
+      "evidence": "Manual browser verification",
+      "note": "Record after checking the published GitHub Pages site."
+    }
+  }
+}

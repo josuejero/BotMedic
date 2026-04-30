@@ -23,6 +23,13 @@ function formatTimestamp(value?: string): string {
   return parsed.toLocaleString('en-US', { timeZone: 'UTC', hour12: false });
 }
 
+function formatRate(part: number, total: number): string {
+  if (total <= 0) {
+    return 'Not recorded yet';
+  }
+  return `${Number(((part / total) * 100).toFixed(2))}%`;
+}
+
 export function renderDashboardHtml(data: DashboardData, incidents: IncidentSample[] = INCIDENT_SAMPLES): string {
   const healthSection = data.lastHealth
     ? `<p><strong>Timestamp:</strong> ${formatTimestamp(data.lastHealth.timestamp)}</p>
@@ -39,6 +46,15 @@ export function renderDashboardHtml(data: DashboardData, incidents: IncidentSamp
     const count = data.commandCounts[command] ?? 0;
     return `<li><span>${command}</span><strong>${count}</strong></li>`;
   }).join('');
+
+  const interactionSection = data.interactionRollup
+    ? `<ul>
+        <li><span>Total interactions</span><strong>${data.interactionRollup.total}</strong></li>
+        <li><span>Success rate</span><strong>${formatRate(data.interactionRollup.success, data.interactionRollup.total)}</strong></li>
+        <li><span>Error rate</span><strong>${formatRate(data.interactionRollup.error, data.interactionRollup.total)}</strong></li>
+        <li><span>Under 3 seconds</span><strong>${formatRate(data.interactionRollup.underThreeSeconds, data.interactionRollup.total)}</strong></li>
+      </ul>`
+    : '<p>No interaction reliability rollup recorded yet.</p>';
 
   const incidentMarkup = incidents
     .map(
@@ -147,6 +163,10 @@ export function renderDashboardHtml(data: DashboardData, incidents: IncidentSamp
       <section>
         <h2>Command usage</h2>
         <ul>${commandList}</ul>
+      </section>
+      <section>
+        <h2>Interaction reliability</h2>
+        ${interactionSection}
       </section>
       <section>
         <h2>Last successful /health</h2>

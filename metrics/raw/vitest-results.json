@@ -1,0 +1,344 @@
+{
+  "numTotalTestSuites": 12,
+  "numPassedTestSuites": 12,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 25,
+  "numPassedTests": 25,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "startTime": 1777551414996,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "",
+            "dashboard renderer"
+          ],
+          "fullName": " dashboard renderer includes counts, health, diagnosis, and incident samples",
+          "status": "passed",
+          "title": "includes counts, health, diagnosis, and incident samples",
+          "duration": 20,
+          "failureMessages": []
+        }
+      ],
+      "startTime": 1777551415467,
+      "endTime": 1777551415487,
+      "status": "passed",
+      "message": "",
+      "name": "C:/Users/josue/Documents/Internship-Projects/BotMedic/apps/bot-worker/tests/dashboard.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "",
+            "incident fixture library"
+          ],
+          "fullName": " incident fixture library mirrors the worker rule cases",
+          "status": "passed",
+          "title": "mirrors the worker rule cases",
+          "duration": 5,
+          "failureMessages": []
+        }
+      ],
+      "startTime": 1777551415452,
+      "endTime": 1777551415457,
+      "status": "passed",
+      "message": "",
+      "name": "C:/Users/josue/Documents/Internship-Projects/BotMedic/apps/bot-worker/tests/incident-library.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper verifies valid signatures and rejects invalid ones",
+          "status": "passed",
+          "title": "verifies valid signatures and rejects invalid ones",
+          "duration": 50,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds a health response with the correct structure",
+          "status": "passed",
+          "title": "builds a health response with the correct structure",
+          "duration": 1,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds an envcheck response when environment variables are valid",
+          "status": "passed",
+          "title": "builds an envcheck response when environment variables are valid",
+          "duration": 1,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper reports malformed environment values when they fail validation",
+          "status": "passed",
+          "title": "reports malformed environment values when they fail validation",
+          "duration": 0,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds a permissions response that lists missing flags",
+          "status": "passed",
+          "title": "builds a permissions response that lists missing flags",
+          "duration": 0,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds a permissions response that confirms all flags are present",
+          "status": "passed",
+          "title": "builds a permissions response that confirms all flags are present",
+          "duration": 1,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds a latency response using the Discord timestamp header",
+          "status": "passed",
+          "title": "builds a latency response using the Discord timestamp header",
+          "duration": 0,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds a helpme response with interactive buttons",
+          "status": "passed",
+          "title": "builds a helpme response with interactive buttons",
+          "duration": 1,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds a helpme symptom response for known buttons",
+          "status": "passed",
+          "title": "builds a helpme symptom response for known buttons",
+          "duration": 0,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper handles helpme button interactions",
+          "status": "passed",
+          "title": "handles helpme button interactions",
+          "duration": 8,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper lists incident scenarios when no option is provided",
+          "status": "passed",
+          "title": "lists incident scenarios when no option is provided",
+          "duration": 5,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper replays a scenario via the incident command",
+          "status": "passed",
+          "title": "replays a scenario via the incident command",
+          "duration": 4,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper returns a deferred response for the slow handler scenario",
+          "status": "passed",
+          "title": "returns a deferred response for the slow handler scenario",
+          "duration": 6,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper builds a deferred incident response helper",
+          "status": "passed",
+          "title": "builds a deferred incident response helper",
+          "duration": 1,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "Discord interaction helper"
+          ],
+          "fullName": " Discord interaction helper responds to PING interactions with type 1",
+          "status": "passed",
+          "title": "responds to PING interactions with type 1",
+          "duration": 7,
+          "failureMessages": []
+        }
+      ],
+      "startTime": 1777551415479,
+      "endTime": 1777551415564,
+      "status": "passed",
+      "message": "",
+      "name": "C:/Users/josue/Documents/Internship-Projects/BotMedic/apps/bot-worker/tests/interaction.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "",
+            "synthetic command response budget"
+          ],
+          "fullName": " synthetic command response budget builds common command responses under Discord initial response budget",
+          "status": "passed",
+          "title": "builds common command responses under Discord initial response budget",
+          "duration": 3,
+          "failureMessages": []
+        }
+      ],
+      "startTime": 1777551415467,
+      "endTime": 1777551415470,
+      "status": "passed",
+      "message": "",
+      "name": "C:/Users/josue/Documents/Internship-Projects/BotMedic/apps/bot-worker/tests/performance.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "",
+            "rule catalog"
+          ],
+          "fullName": " rule catalog defines all seeded cases and metadata",
+          "status": "passed",
+          "title": "defines all seeded cases and metadata",
+          "duration": 3,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "rule catalog"
+          ],
+          "fullName": " rule catalog maps custom IDs back to their rule",
+          "status": "passed",
+          "title": "maps custom IDs back to their rule",
+          "duration": 1,
+          "failureMessages": []
+        }
+      ],
+      "startTime": 1777551415443,
+      "endTime": 1777551415447,
+      "status": "passed",
+      "message": "",
+      "name": "C:/Users/josue/Documents/Internship-Projects/BotMedic/apps/bot-worker/tests/rules.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "",
+            "interaction telemetry"
+          ],
+          "fullName": " interaction telemetry skips interaction metric writes when DASHBOARD_KV is missing",
+          "status": "passed",
+          "title": "skips interaction metric writes when DASHBOARD_KV is missing",
+          "duration": 1,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "interaction telemetry"
+          ],
+          "fullName": " interaction telemetry records a successful command status and command rollup",
+          "status": "passed",
+          "title": "records a successful command status and command rollup",
+          "duration": 56,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "interaction telemetry"
+          ],
+          "fullName": " interaction telemetry records malformed payloads with an error status",
+          "status": "passed",
+          "title": "records malformed payloads with an error status",
+          "duration": 6,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "interaction telemetry"
+          ],
+          "fullName": " interaction telemetry increments the under-three-second SLA counter",
+          "status": "passed",
+          "title": "increments the under-three-second SLA counter",
+          "duration": 0,
+          "failureMessages": []
+        },
+        {
+          "ancestorTitles": [
+            "",
+            "interaction telemetry"
+          ],
+          "fullName": " interaction telemetry caps recent latency samples at 100 entries",
+          "status": "passed",
+          "title": "caps recent latency samples at 100 entries",
+          "duration": 2,
+          "failureMessages": []
+        }
+      ],
+      "startTime": 1777551415478,
+      "endTime": 1777551415544,
+      "status": "passed",
+      "message": "",
+      "name": "C:/Users/josue/Documents/Internship-Projects/BotMedic/apps/bot-worker/tests/telemetry.test.ts"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BotMedic metrics</title>
+    <link rel="stylesheet" href="css/site.css" />
+  </head>
+  <body data-page="metrics">
+    <nav class="page-nav">
+      <a href="index.html">Home</a>
+      <a href="runbooks/index.html">Runbooks</a>
+      <a href="diagnosis.html">Diagnosis</a>
+      <a href="quick-reference.html">Quick reference</a>
+    </nav>
+    <main>
+      <header>
+        <p>Project evidence</p>
+        <h1>BotMedic metrics</h1>
+        <p>Generated from repo scope, Vitest output, coverage reports, CI evidence, and telemetry exports.</p>
+        <p><strong>Last updated:</strong> 2026-04-30T12:16:58.884Z</p>
+        <p><strong>Commit:</strong> local</p>
+      </header>
+      <section>
+        <h2>Current metrics</h2>
+        <table class="quick-reference-table">
+          <thead>
+            <tr><th>Area</th><th>Metric</th><th>Value</th><th>Source</th><th>Evidence</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Scope</td><td>Slash commands</td><td>6</td><td>local</td><td><code>metrics/raw/scope.json</code></td></tr>
+<tr><td>Scope</td><td>Rule cases</td><td>10</td><td>local</td><td><code>metrics/raw/scope.json</code></td></tr>
+<tr><td>Scope</td><td>Generated runbook pages</td><td>10</td><td>local</td><td><code>metrics/raw/scope.json</code></td></tr>
+<tr><td>Scope</td><td>Screenshot assets</td><td>6</td><td>local</td><td><code>metrics/raw/scope.json</code></td></tr>
+<tr><td>QA</td><td>Test files</td><td>6</td><td>local</td><td><code>metrics/raw/scope.json</code></td></tr>
+<tr><td>QA</td><td>Automated tests</td><td>25</td><td>local</td><td><code>metrics/raw/vitest-results.json</code></td></tr>
+<tr><td>QA</td><td>Test pass rate</td><td>100%</td><td>local</td><td><code>metrics/raw/vitest-results.json</code></td></tr>
+<tr><td>QA</td><td>Statement coverage</td><td>84.33%</td><td>local</td><td><code>metrics/raw/coverage/coverage-summary.json</code></td></tr>
+<tr><td>QA</td><td>Branch coverage</td><td>66.66%</td><td>local</td><td><code>metrics/raw/coverage/coverage-summary.json</code></td></tr>
+<tr><td>QA</td><td>Function coverage</td><td>89.74%</td><td>local</td><td><code>metrics/raw/coverage/coverage-summary.json</code></td></tr>
+<tr><td>QA</td><td>Line coverage</td><td>84.33%</td><td>local</td><td><code>metrics/raw/coverage/coverage-summary.json</code></td></tr>
+<tr><td>QA</td><td>Synthetic response budget checks</td><td>1</td><td>synthetic</td><td><code>metrics/raw/vitest-results.json</code><br><small>Checks response builders against Discord initial-response budget in a controlled test run.</small></td></tr>
+<tr><td>Delivery</td><td>Workflow success rate, last 30 runs</td><td>Not recorded yet</td><td>CI</td><td><code>metrics/raw/github-actions-runs.json</code><br><small>Skipped locally without GitHub Actions token.</small></td></tr>
+<tr><td>Delivery</td><td>Median CI duration</td><td>Not recorded yet</td><td>CI</td><td><code>metrics/raw/github-actions-runs.json</code><br><small>Skipped locally without GitHub Actions token.</small></td></tr>
+<tr><td>Delivery</td><td>Deployment frequency, last 30 days</td><td>Not recorded yet</td><td>CI</td><td><code>metrics/raw/github-actions-runs.json</code><br><small>Skipped locally without GitHub Actions token.</small></td></tr>
+<tr><td>Reliability</td><td>Total handled interactions</td><td>Not recorded yet</td><td>Cloudflare</td><td><code>metrics/raw/interaction-rollup.json</code><br><small>Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported.</small></td></tr>
+<tr><td>Reliability</td><td>Success rate</td><td>Not recorded yet</td><td>Cloudflare</td><td><code>metrics/raw/interaction-rollup.json</code><br><small>Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported.</small></td></tr>
+<tr><td>Reliability</td><td>Error rate</td><td>Not recorded yet</td><td>Cloudflare</td><td><code>metrics/raw/interaction-rollup.json</code><br><small>Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported.</small></td></tr>
+<tr><td>Reliability</td><td>p95 command latency</td><td>Not recorded yet</td><td>Cloudflare</td><td><code>metrics/raw/interaction-rollup.json</code><br><small>Not recorded until Workers KV telemetry or Cloudflare dashboard metrics are exported.</small></td></tr>
+<tr><td>Reliability</td><td>Discord responses under 3 seconds</td><td>Not recorded yet</td><td>Cloudflare</td><td><code>metrics/raw/interaction-rollup.json</code><br><small>Not recorded until Workers KV telemetry is exported.</small></td></tr>
+<tr><td>Security</td><td>Signature verification tests</td><td>1</td><td>local</td><td><code>metrics/raw/vitest-results.json</code></td></tr>
+<tr><td>Security</td><td>Invalid-signature tests</td><td>1</td><td>local</td><td><code>metrics/raw/vitest-results.json</code></td></tr>
+<tr><td>Security</td><td>Open critical/high dependency alerts</td><td>Not recorded yet</td><td>manual</td><td><code>GitHub Dependabot alerts</code><br><small>Report from GitHub security alerts after enabled.</small></td></tr>
+<tr><td>Security</td><td>CodeQL open alerts</td><td>Not recorded yet</td><td>manual</td><td><code>GitHub code scanning alerts</code><br><small>Report from GitHub code scanning after enabled.</small></td></tr>
+<tr><td>Security</td><td>OpenSSF Scorecard</td><td>Not recorded yet</td><td>manual</td><td><code>OpenSSF Scorecard workflow</code><br><small>Report after Scorecard publishes a result.</small></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    <footer class="site-footer">
+      Metrics with local or synthetic sources should not be described as production metrics.
+    </footer>
+  </body>
+</html>

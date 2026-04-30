@@ -6,10 +6,12 @@
   "scripts": {
     "build": "wrangler build",
     "dev": "wrangler dev",
-    "deploy": "wrangler publish",
+    "deploy": "wrangler deploy",
     "register:commands": "ts-node scripts/register-commands.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:json": "vitest run --reporter=json --outputFile=../../metrics/raw/vitest-results.json",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@botmedic/commands": "file:../../packages/commands",
@@ -19,9 +21,10 @@
     "undici": "^6.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.0",
+    "@vitest/coverage-v8": "0.34.6",
     "ts-node": "^10.9.1",
-    "vitest": "^0.34.5",
+    "typescript": "^5.9.0",
+    "vitest": "0.34.6",
     "wrangler": "^3.10.0"
   }
 }

@@ -1,0 +1,21 @@
+{
+  "source": "Cloudflare Workers KV export",
+  "recorded_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "kv_key": "botmedic:interaction_rollup",
+  "total": null,
+  "success": null,
+  "error": null,
+  "underThreeSeconds": null,
+  "latencyBuckets": {
+    "lt100": null,
+    "lt250": null,
+    "lt500": null,
+    "lt1000": null,
+    "lt3000": null,
+    "gte3000": null
+  },
+  "recentLatenciesMs": [],
+  "byCommand": {},
+  "lastEvent": null,
+  "notes": "Copy real Workers KV rollup data to metrics/raw/interaction-rollup.json before publishing reliability values."
+}
