@@ -1,13 +1,7 @@
-name = "botmedic-worker" # replace with your worker name
+name = "botmedic-worker"
 main = "./src/index.ts"
-compatibility_date = "2025-01-01" # update to current date when ready
-account_id = "" # fill from Cloudflare dashboard
+compatibility_date = "2025-01-01"
 
 [vars]
 BOT_VERSION = "0.1.0"
 BOT_ENV = "development"
-
-[[kv_namespaces]]
-binding = "DASHBOARD_KV"
-id = "" # fill from `wrangler kv:namespace create dashboard-metrics`
-preview_id = ""

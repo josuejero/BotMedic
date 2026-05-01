@@ -1,7 +1,7 @@
 # BotMedic project metrics
 
-Last updated: 2026-04-30T12:16:58.884Z  
-Commit: local  
+Last updated: 2026-05-01T00:14:16.507Z
+Commit: local
 Environment: local
 
 ## Summary
@@ -16,13 +16,13 @@ BotMedic is a TypeScript Discord incident-triage platform with a Cloudflare Work
 | Scope | Rule cases | 10 | local | metrics/raw/scope.json |
 | Scope | Generated runbook pages | 10 | local | metrics/raw/scope.json |
 | Scope | Screenshot assets | 6 | local | metrics/raw/scope.json |
-| QA | Test files | 6 | local | metrics/raw/scope.json |
-| QA | Automated tests | 25 | local | metrics/raw/vitest-results.json |
+| QA | Test files | 7 | local | metrics/raw/scope.json |
+| QA | Automated tests | 28 | local | metrics/raw/vitest-results.json |
 | QA | Test pass rate | 100% | local | metrics/raw/vitest-results.json |
-| QA | Statement coverage | 84.33% | local | metrics/raw/coverage/coverage-summary.json |
-| QA | Branch coverage | 66.66% | local | metrics/raw/coverage/coverage-summary.json |
-| QA | Function coverage | 89.74% | local | metrics/raw/coverage/coverage-summary.json |
-| QA | Line coverage | 84.33% | local | metrics/raw/coverage/coverage-summary.json |
+| QA | Statement coverage | 76.67% | local | metrics/raw/coverage/coverage-summary.json |
+| QA | Branch coverage | 64.82% | local | metrics/raw/coverage/coverage-summary.json |
+| QA | Function coverage | 85.71% | local | metrics/raw/coverage/coverage-summary.json |
+| QA | Line coverage | 76.68% | local | metrics/raw/coverage/coverage-summary.json |
 | QA | Synthetic response budget checks | 1 | synthetic | metrics/raw/vitest-results.json (Checks response builders against Discord initial-response budget in a controlled test run.) |
 | Delivery | Workflow success rate, last 30 runs | Not recorded yet | CI | metrics/raw/github-actions-runs.json (Skipped locally without GitHub Actions token.) |
 | Delivery | Median CI duration | Not recorded yet | CI | metrics/raw/github-actions-runs.json (Skipped locally without GitHub Actions token.) |

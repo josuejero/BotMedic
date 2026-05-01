@@ -11,14 +11,14 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-  actions: read
 
 jobs:
   build:
     name: build + test + metrics
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +39,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Generate CycloneDX SBOM
+        run: npm run sbom:cyclonedx
+
+      - name: Generate SPDX SBOM
+        run: npm run sbom:spdx
+
       - name: Upload metrics and coverage artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -47,6 +53,8 @@ jobs:
             metrics/current.json
             metrics/reports/
             metrics/raw/
+            sbom.cyclonedx.json
+            sbom.spdx.json
           retention-days: 30
 
       - name: Upload site assets
@@ -59,6 +67,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

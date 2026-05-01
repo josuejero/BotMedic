@@ -3,6 +3,15 @@ apps/bot-worker/node_modules/
 site/node_modules/
 packages/**/node_modules/
 tests/node_modules/
+apps/bot-worker/dist/
 .DS_Store
 .env*
 wrangler.toml
+
+# Generated local reports
+coverage/
+metrics/raw/coverage/
+*.sarif
+sbom.cyclonedx.json
+sbom.spdx.json
+osv-results.sarif

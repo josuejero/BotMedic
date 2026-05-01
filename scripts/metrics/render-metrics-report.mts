@@ -69,8 +69,8 @@ const table = rows
 
 const markdown = `# BotMedic project metrics
 
-Last updated: ${metrics.generated_at}  
-Commit: ${metrics.commit_sha}  
+Last updated: ${metrics.generated_at}
+Commit: ${metrics.commit_sha}
 Environment: ${metrics.environment}
 
 ## Summary
