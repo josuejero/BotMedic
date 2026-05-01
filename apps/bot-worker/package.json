@@ -16,9 +16,9 @@
   "dependencies": {
     "@botmedic/commands": "file:../../packages/commands",
     "@botmedic/rules": "file:../../packages/rules",
-    "@noble/ed25519": "^1.7.1",
-    "dotenv": "^10.0.0",
-    "undici": "^6.25.0"
+    "@noble/ed25519": "^3.1.0",
+    "dotenv": "^17.4.2",
+    "undici": "^8.1.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.5",
