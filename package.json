@@ -1,5 +1,6 @@
 {
   "name": "botmedic",
+  "version": "0.1.0",
   "private": true,
   "workspaces": [
     "apps/bot-worker",
@@ -16,6 +17,9 @@
     "metrics:build": "tsx scripts/metrics/build-current-metrics.mts",
     "metrics:report": "tsx scripts/metrics/render-metrics-report.mts",
     "metrics": "npm run metrics:scope && npm run test:json && npm run coverage && npm run metrics:ci && npm run metrics:build && npm run metrics:report",
+    "audit": "npm audit --audit-level=high",
+    "sbom:cyclonedx": "npm sbom --sbom-format=cyclonedx --sbom-type=application > sbom.cyclonedx.json",
+    "sbom:spdx": "npm sbom --sbom-format=spdx --sbom-type=application > sbom.spdx.json",
     "lint": "echo \"No lint configured yet\""
   },
   "devDependencies": {

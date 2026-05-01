@@ -1,0 +1,10 @@
+* @josuejero
+.github/workflows/ @josuejero
+.github/dependabot.yml @josuejero
+SECURITY.md @josuejero
+package.json @josuejero
+package-lock.json @josuejero
+apps/bot-worker/src/ @josuejero
+apps/bot-worker/tests/ @josuejero
+packages/commands/src/ @josuejero
+packages/rules/src/ @josuejero

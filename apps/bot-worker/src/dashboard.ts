@@ -1,6 +1,6 @@
 import { EnvBindings } from './types/discord';
 import { readDashboardData, COMMAND_NAMES, DashboardData } from './telemetry';
-import incidentSamples from '../../fixtures/incidents/dashboard-samples.json';
+import incidentSamples from '../../../fixtures/incidents/dashboard-samples.json';
 
 export interface IncidentSample {
   id: string;
