@@ -14,12 +14,6 @@ BotMedic is a serverless Discord incident-triage platform built with TypeScript,
 - **Architecture docs:** `docs/architecture/README.md`, `docs/test-checklists/commands.md`, `site/README.md`
 - **Main code to inspect:** `apps/bot-worker/`, `packages/commands/`, `packages/rules/`, `fixtures/incidents/`
 
-## Employer scan
-**Best fit roles:** Backend Developer, Serverless Developer, Platform Engineer, QA Automation Engineer  
-**Core stack:** TypeScript, Cloudflare Workers, Discord API, Workers KV, Vitest, GitHub Pages  
-**What this proves:** Webhook verification, command routing, serverless APIs, observability, shared packages, fixture-driven regression tests  
-**Start here:** `apps/bot-worker/src/`, `packages/commands/`, `packages/rules/`, `fixtures/incidents/`
-
 ## Project evidence
 BotMedic includes 6 Discord slash commands, 10 diagnostic rule cases, 10 generated runbook pages, fixture-backed incident scenarios, Vitest regression tests, GitHub Pages deployment, and a generated metrics report. Exact test and coverage values are generated into `metrics/reports/METRICS.md` and the published metrics page.
 
