@@ -23,6 +23,6 @@
     "lint": "echo \"No lint configured yet\""
   },
   "devDependencies": {
-    "tsx": "4.21.0"
+    "tsx": "4.22.2"
   }
 }
